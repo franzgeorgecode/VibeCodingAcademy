@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { checkUsernameAvailability } from '@/lib/supabase';
 
@@ -15,9 +15,47 @@ const Register = () => {
   const [rateLimitTimer, setRateLimitTimer] = useState(3);
   const [step, setStep] = useState<'username' | 'email' | 'password'>('username');
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
+  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
   
   const navigate = useNavigate();
   const { signUp, isLoading } = useAuthStore();
+
+  // Clear validation when username changes
+  useEffect(() => {
+    setIsUsernameAvailable(null);
+    setError(null);
+
+    // Debounce username availability check
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+
+    if (username.length >= 3) {
+      const timeout = setTimeout(async () => {
+        setIsCheckingUsername(true);
+        try {
+          const isAvailable = await checkUsernameAvailability(username);
+          setIsUsernameAvailable(isAvailable);
+          if (!isAvailable) {
+            setError('This username is already taken');
+          }
+        } catch (error) {
+          console.error('Error checking username:', error);
+        } finally {
+          setIsCheckingUsername(false);
+        }
+      }, 500);
+
+      setDebounceTimeout(timeout);
+    }
+
+    return () => {
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
+    };
+  }, [username]);
   
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -46,23 +84,6 @@ const Register = () => {
     return usernameRegex.test(username);
   };
 
-  const checkUsername = async (username: string) => {
-    setIsCheckingUsername(true);
-    try {
-      const isAvailable = await checkUsernameAvailability(username);
-      if (!isAvailable) {
-        setError('This username is already taken');
-        return false;
-      }
-      return true;
-    } catch (error) {
-      setError('Error checking username availability');
-      return false;
-    } finally {
-      setIsCheckingUsername(false);
-    }
-  };
-
   const handleNext = async () => {
     setError(null);
     
@@ -75,9 +96,10 @@ const Register = () => {
         setError('Username must be 3-20 characters and can only contain letters, numbers, underscores, and hyphens');
         return;
       }
-      const isAvailable = await checkUsername(username);
-      if (!isAvailable) return;
-      
+      if (!isUsernameAvailable) {
+        setError('This username is already taken');
+        return;
+      }
       setStep('email');
     } else if (step === 'email') {
       if (!email) {
@@ -125,6 +147,12 @@ const Register = () => {
       setStep('password');
       return;
     }
+
+    if (!isUsernameAvailable) {
+      setError('This username is already taken');
+      setStep('username');
+      return;
+    }
     
     const { error } = await signUp(email, password, username);
     
@@ -148,6 +176,36 @@ const Register = () => {
         navigate('/login');
       }, 5000);
     }
+  };
+
+  const renderUsernameStatus = () => {
+    if (username.length < 3) return null;
+    
+    if (isCheckingUsername) {
+      return (
+        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+        </div>
+      );
+    }
+    
+    if (isUsernameAvailable) {
+      return (
+        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <CheckCircle className="w-4 h-4 text-green-500" />
+        </div>
+      );
+    }
+    
+    if (isUsernameAvailable === false) {
+      return (
+        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <AlertCircle className="w-4 h-4 text-red-500" />
+        </div>
+      );
+    }
+    
+    return null;
   };
 
   const renderStep = () => {
@@ -174,6 +232,7 @@ const Register = () => {
                 placeholder="codingwizard"
                 required
               />
+              {renderUsernameStatus()}
             </div>
             <p className="text-xs text-gray-500 mt-1">
               3-20 characters, letters, numbers, underscores, and hyphens only
