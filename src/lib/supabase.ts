@@ -24,10 +24,13 @@ export const supabase = createClient<Database>(
 // Username validation
 export const checkUsernameAvailability = async (username: string): Promise<boolean> => {
   try {
+    const { data: authUser } = await supabase.auth.getUser();
+    
     const { data, error } = await supabase
       .from('users')
       .select('username')
       .eq('username', username)
+      .neq('id', authUser.user?.id || '') // Exclude current user if updating
       .maybeSingle();
 
     if (error) {
@@ -35,7 +38,7 @@ export const checkUsernameAvailability = async (username: string): Promise<boole
       return false;
     }
 
-    // If no data is found, username is available
+    // Username is available if no data is found
     return data === null;
   } catch (error) {
     console.error('Error checking username:', error);
