@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Brand Colors */
+  --color-primary-50: 245, 243, 255;
+  --color-primary-100: 237, 233, 254;
+  --color-primary-200: 221, 214, 254;
+  --color-primary-300: 196, 181, 253;
+  --color-primary-400: 167, 139, 250;
+  --color-primary-500: 139, 92, 246;
+  --color-primary-600: 124, 58, 237;
+  --color-primary-700: 109, 40, 217;
+  --color-primary-800: 91, 33, 182;
+  --color-primary-900: 76, 29, 149;
+  --color-primary-950: 46, 16, 101;
+  
+  /* Accent Colors */
+  --color-teal-500: 6, 182, 212;
+  --color-orange-500: 249, 115, 22;
+  
+  /* System Colors */
+  --color-success: 16, 185, 129;
+  --color-warning: 245, 158, 11;
+  --color-error: 239, 68, 68;
+  
+  /* Font */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  html {
+    @apply text-gray-900 bg-gray-50;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply min-h-screen;
+    overflow-x: hidden;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+    line-height: 1.2;
+  }
+
+  h1 {
+    @apply text-4xl sm:text-5xl;
+  }
+
+  h2 {
+    @apply text-3xl sm:text-4xl;
+  }
+  
+  h3 {
+    @apply text-2xl sm:text-3xl;
+  }
+
+  p {
+    @apply leading-relaxed;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 
+           focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 
+           focus:ring-primary-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-teal-500 text-white hover:bg-teal-600
+           focus:ring-teal-400;
+  }
+  
+  .btn-outline {
+    @apply border border-gray-300 bg-white text-gray-700
+           hover:bg-gray-50 focus:ring-gray-400;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-md overflow-hidden;
+  }
+  
+  .input {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg
+           focus:outline-none focus:ring-2 focus:ring-primary-500
+           focus:border-transparent transition duration-200;
+  }
+  
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+}
+
+/* Animations */
+.typing-indicator {
+  display: inline-flex;
+  align-items: center;
+}
+
+.typing-indicator span {
+  @apply bg-primary-600;
+  width: 4px;
+  height: 4px;
+  margin: 0 1px;
+  border-radius: 50%;
+  animation: typing 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: scale(0);
+  } 
+  40% {
+    transform: scale(1);
+  }
+}
