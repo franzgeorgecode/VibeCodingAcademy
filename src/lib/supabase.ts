@@ -27,16 +27,14 @@ export const checkUsernameAvailability = async (username: string): Promise<boole
     .from('users')
     .select('username')
     .eq('username', username)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    // If error is not found, username is available
-    if (error.code === 'PGRST116') return true;
     throw error;
   }
 
-  // If data exists, username is taken
-  return !data;
+  // If data is null, username is available
+  return data === null;
 };
 
 // Auth helpers
