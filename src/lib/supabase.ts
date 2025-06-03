@@ -21,9 +21,39 @@ export const supabase = createClient<Database>(
   }
 );
 
+// Username validation
+export const checkUsernameAvailability = async (username: string): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('username')
+    .eq('username', username)
+    .single();
+
+  if (error) {
+    // If error is not found, username is available
+    if (error.code === 'PGRST116') return true;
+    throw error;
+  }
+
+  // If data exists, username is taken
+  return !data;
+};
+
 // Auth helpers
 export const signUp = async (email: string, password: string, username: string) => {
   try {
+    // First check if username is valid
+    const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+    if (!usernameRegex.test(username)) {
+      throw new Error('Username must be 3-20 characters and can only contain letters, numbers, underscores, and hyphens');
+    }
+
+    // Check if username is available
+    const isAvailable = await checkUsernameAvailability(username);
+    if (!isAvailable) {
+      throw new Error('Username is already taken');
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -90,6 +120,19 @@ export const updateUserProfile = async (userId: string, updates: {
   streak_days?: number;
 }) => {
   try {
+    // If updating username, validate it first
+    if (updates.username) {
+      const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+      if (!usernameRegex.test(updates.username)) {
+        throw new Error('Username must be 3-20 characters and can only contain letters, numbers, underscores, and hyphens');
+      }
+
+      const isAvailable = await checkUsernameAvailability(updates.username);
+      if (!isAvailable) {
+        throw new Error('Username is already taken');
+      }
+    }
+
     const { data, error } = await supabase
       .from('users')
       .update(updates)
