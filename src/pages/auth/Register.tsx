@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { checkUsernameAvailability } from '@/lib/supabase';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -13,6 +14,7 @@ const Register = () => {
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [rateLimitTimer, setRateLimitTimer] = useState(3);
   const [step, setStep] = useState<'username' | 'email' | 'password'>('username');
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   
   const navigate = useNavigate();
   const { signUp, signInWithGoogle, isLoading } = useAuthStore();
@@ -40,10 +42,28 @@ const Register = () => {
   };
 
   const validateUsername = (username: string) => {
-    return username.length >= 3 && username.length <= 20;
+    const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+    return usernameRegex.test(username);
   };
 
-  const handleNext = () => {
+  const checkUsername = async (username: string) => {
+    setIsCheckingUsername(true);
+    try {
+      const isAvailable = await checkUsernameAvailability(username);
+      if (!isAvailable) {
+        setError('This username is already taken');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      setError('Error checking username availability');
+      return false;
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+
+  const handleNext = async () => {
     setError(null);
     
     if (step === 'username') {
@@ -52,9 +72,12 @@ const Register = () => {
         return;
       }
       if (!validateUsername(username)) {
-        setError('Username must be between 3 and 20 characters');
+        setError('Username must be 3-20 characters and can only contain letters, numbers, underscores, and hyphens');
         return;
       }
+      const isAvailable = await checkUsername(username);
+      if (!isAvailable) return;
+      
       setStep('email');
     } else if (step === 'email') {
       if (!email) {
@@ -86,7 +109,7 @@ const Register = () => {
     }
     
     if (!validateUsername(username)) {
-      setError('Username must be between 3 and 20 characters');
+      setError('Username must be 3-20 characters and can only contain letters, numbers, underscores, and hyphens');
       setStep('username');
       return;
     }
@@ -143,12 +166,18 @@ const Register = () => {
                 id="username"
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setError(null);
+                }}
                 className="input pl-10"
                 placeholder="codingwizard"
                 required
               />
             </div>
+            <p className="text-xs text-gray-500 mt-1">
+              3-20 characters, letters, numbers, underscores, and hyphens only
+            </p>
           </div>
         );
       
@@ -166,7 +195,10 @@ const Register = () => {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+                }}
                 className="input pl-10"
                 placeholder="you@example.com"
                 required
@@ -189,7 +221,10 @@ const Register = () => {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError(null);
+                }}
                 className="input pl-10"
                 placeholder="••••••••"
                 required
@@ -270,9 +305,18 @@ const Register = () => {
             <button
               type="button"
               onClick={handleNext}
-              className="btn btn-primary flex-1"
+              disabled={isCheckingUsername}
+              className="btn btn-primary flex-1 flex items-center justify-center"
             >
-              Next
+              {isCheckingUsername ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                />
+              ) : (
+                'Next'
+              )}
             </button>
           ) : (
             <button
