@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Sparkles, BookOpen, Award, User, Code2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
@@ -9,14 +9,20 @@ import SrCodeChatButton from '../srcode/SrCodeChatButton';
 const DashboardLayout = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { user, signOut } = useAuthStore();
   
   const navItems = [
     { icon: <Sparkles size={20} />, label: 'Dashboard', path: '/dashboard' },
-    { icon: <BookOpen size={20} />, label: 'Lessons', path: '/lessons' },
-    { icon: <Award size={20} />, label: 'Badges', path: '/badges' },
+    { icon: <BookOpen size={20} />, label: 'My Lessons', path: '/dashboard' }, // Changed to /dashboard for now
+    { icon: <Award size={20} />, label: 'Achievements', path: '/dashboard' }, // Changed to /dashboard for now
     { icon: <User size={20} />, label: 'Profile', path: '/profile' },
   ];
+
+  const handleNavigation = (path: string) => {
+    setIsMenuOpen(false);
+    navigate(path);
+  };
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -91,14 +97,13 @@ const DashboardLayout = () => {
                 <ul className="space-y-2">
                   {navItems.map((item) => (
                     <li key={item.path}>
-                      <Link
-                        to={item.path}
-                        className={`flex items-center space-x-3 px-4 py-3 rounded-lg ${pathname === item.path ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100'}`}
-                        onClick={() => setIsMenuOpen(false)}
+                      <button
+                        onClick={() => handleNavigation(item.path)}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${pathname === item.path ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100'}`}
                       >
                         {item.icon}
                         <span>{item.label}</span>
-                      </Link>
+                      </button>
                     </li>
                   ))}
                 </ul>
