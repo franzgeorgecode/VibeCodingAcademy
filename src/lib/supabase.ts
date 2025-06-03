@@ -26,17 +26,12 @@ export const checkUsernameAvailability = async (username: string): Promise<boole
   try {
     const { data: authUser } = await supabase.auth.getUser();
     
-    let query = supabase
+    const { data, error } = await supabase
       .from('users')
       .select('username')
-      .eq('username', username);
-    
-    // Only apply the user ID filter if there's an authenticated user
-    if (authUser.user?.id) {
-      query = query.neq('id', authUser.user.id);
-    }
-
-    const { data, error } = await query.maybeSingle();
+      .eq('username', username)
+      .neq('id', authUser.user?.id || '') // Exclude current user if updating
+      .maybeSingle();
 
     if (error) {
       console.error('Error checking username:', error);
