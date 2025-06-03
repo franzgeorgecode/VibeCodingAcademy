@@ -23,18 +23,24 @@ export const supabase = createClient<Database>(
 
 // Username validation
 export const checkUsernameAvailability = async (username: string): Promise<boolean> => {
-  const { data, error } = await supabase
-    .from('users')
-    .select('username')
-    .eq('username', username)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('username')
+      .eq('username', username)
+      .maybeSingle();
 
-  if (error) {
-    throw error;
+    if (error) {
+      console.error('Error checking username:', error);
+      return false;
+    }
+
+    // If no data is found, username is available
+    return data === null;
+  } catch (error) {
+    console.error('Error checking username:', error);
+    return false;
   }
-
-  // If data is null, username is available
-  return data === null;
 };
 
 // Auth helpers
@@ -52,6 +58,7 @@ export const signUp = async (email: string, password: string, username: string) 
       throw new Error('Username is already taken');
     }
 
+    // If username is valid and available, proceed with signup
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
