@@ -39,7 +39,7 @@ export const translations = {
       continueJourney: 'Continue your learning journey with SrCode',
       startAdventure: 'Start your AI-powered coding adventure',
       forgotPassword: 'Forgot Password?',
-      noAccount: "Don't have an account?",
+      noAccount: "Do not have an account?",
       haveAccount: 'Already have an account?',
       signInInstead: 'Sign In',
       signUpInstead: 'Sign Up',
@@ -86,12 +86,12 @@ export const translations = {
         alex: {
           name: 'Alex Chen',
           role: 'Full-Stack Developer',
-          content: 'SrCode taught me bolt.new faster than any bootcamp. Now I\'m building production apps in days, not months.'
+          content: 'SrCode taught me bolt.new faster than any bootcamp. Now I am building production apps in days, not months.'
         },
         maria: {
           name: 'Maria Rodriguez',
           role: 'Startup Founder',
-          content: 'The interactive AI mentor is incredible. It's like having a senior developer guiding you 24/7.'
+          content: 'The interactive AI mentor is incredible. It is like having a senior developer guiding you 24/7.'
         },
         david: {
           name: 'David Kim',
@@ -178,7 +178,7 @@ export const translations = {
       backToLesson: 'Back to Lesson',
       congratulations: 'Congratulations!',
       keepTrying: 'Keep Trying!',
-      passedMessage: 'You\'ve successfully completed "{{lessonTitle}}" and earned the "{{badgeName}}" badge!',
+      passedMessage: 'You have successfully completed "{{lessonTitle}}" and earned the "{{badgeName}}" badge!',
       failedMessage: 'You need 85% or higher to pass. You scored {{score}}%. Review the lesson and try again!',
       badgeEarned: '🏆 Badge Earned: {{badgeName}} (+{{xp}} XP)',
       continueLearning: 'Continue Learning',
@@ -195,7 +195,7 @@ export const translations = {
     certificate: { // Note: some certificate translations are in CertificateTab.tsx in the prompt
       title: 'Certificate',
       congratulations: 'Congratulations! 🎉',
-      earned: 'You\'ve completed all 18 lessons and earned your certificate!',
+      earned: 'You have completed all 18 lessons and earned your certificate!',
       download: 'Download Certificate',
       keepLearning: 'Keep Learning!',
       progress: 'Complete all 18 lessons to earn your certificate',
@@ -215,8 +215,8 @@ export const translations = {
       subtitle: 'AI Mentor',
       placeholder: 'Ask SrCode anything about this lesson...',
       thinking: 'SrCode is thinking...',
-      welcomeMessage: 'Hey there! 👋 I\'m SrCode, your AI mentor for "{{lessonTitle}}". Ready to dive into some bolt.new magic? Ask me anything about this lesson!',
-      errorMessage: 'Oops! I\'m having some technical difficulties. Try again in a moment! 🔧',
+      welcomeMessage: 'Hey there! 👋 I am SrCode, your AI mentor for "{{lessonTitle}}". Ready to dive into some bolt.new magic? Ask me anything about this lesson!',
+      errorMessage: 'Oops! I am having some technical difficulties. Try again in a moment! 🔧',
       offline: 'I\'m currently offline, but I\'ll be back soon! 💻'
     }
   },
