@@ -1,4 +1,15 @@
 import { marked } from 'marked';
+import hljs from 'highlight.js';
+
+// Configure marked with syntax highlighting
+marked.setOptions({
+  highlight: function(code, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      return hljs.highlight(code, { language: lang }).value;
+    }
+    return code;
+  }
+});
 
 export interface Lesson {
   id: string;
@@ -18,8 +29,10 @@ export interface Lesson {
     question: string;
     options: string[];
     correctAnswer: number;
+    explanation: string;
   }[];
   srCodeSays: string;
+  practice?: string;
 }
 
 export const lessons: Record<string, Lesson> = {
@@ -30,35 +43,68 @@ export const lessons: Record<string, Lesson> = {
     level: 1,
     xpReward: 10,
     content: marked(`
-## Introduction to bolt.new
+# What the Hell is bolt.new?
 
-bolt.new is an AI-powered development environment that revolutionizes how we build web applications. Created by StackBlitz, it's like having a senior developer available 24/7 who never gets tired and never judges your code (well, maybe a little 😉).
+Welcome to your first lesson in the Vibe Coding Academy! I'm SrCode, and I'll be your mentor throughout this journey.
 
-### What Makes bolt.new Special?
+## What is bolt.new?
 
-1. **AI-Powered Development**
-   - Creates complete projects from natural language descriptions
-   - Provides intelligent code suggestions and solutions
-   - Explains complex concepts in simple terms
-   - Adapts to your coding style and preferences
+bolt.new is a revolutionary AI-powered web development agent that allows you to build full-stack applications using natural language prompts. Think of it as having a senior developer who:
 
-2. **WebContainer Technology**
-   - Runs Node.js directly in your browser
-   - No local setup required
-   - Instant project creation and deployment
-   - Seamless development experience
+- Never gets tired or frustrated
+- Doesn't need coffee breaks
+- Never argues about coding standards
+- Can build entire applications from scratch
+- Integrates seamlessly with modern tools
 
-3. **Real-Time Collaboration**
-   - Share your workspace with a single URL
-   - Get instant feedback from the AI
-   - Perfect for pair programming and learning
+## Key Features:
 
-### Key Features
+### 🚀 **AI-Powered Development**
+bolt.new uses advanced AI to understand your requirements and generate complete, functional code. You describe what you want, and it builds it.
 
-- **Project Generation**: Create complete applications with simple prompts
-- **Code Assistance**: Get help with debugging and optimization
-- **Best Practices**: Learn modern development patterns
-- **Instant Deployment**: Deploy your apps with a single click
+### 🌐 **Full-Stack Capabilities**
+- Frontend development (React, Vue, Svelte)
+- Backend integration (APIs, databases)
+- Styling (CSS, Tailwind, styled-components)
+- State management
+- Authentication systems
+
+### ⚡ **Instant Deployment**
+Built-in integration with:
+- Netlify for hosting
+- Supabase for databases
+- GitHub for version control
+- Custom domains
+
+### 🛠️ **Modern Tech Stack**
+- WebContainers for browser-based development
+- Hot reloading and live preview
+- Terminal access within browser
+- Package manager integration
+
+## Why bolt.new is Revolutionary:
+
+1. **Speed**: Build applications in minutes, not days
+2. **Accessibility**: No need to be an expert coder
+3. **Integration**: Everything works together seamlessly
+4. **Learning**: Great for understanding modern web development
+
+## Common Use Cases:
+
+- **Landing Pages**: Beautiful, responsive marketing sites
+- **SaaS Applications**: Complete business applications
+- **E-commerce**: Online stores with payment integration
+- **Portfolios**: Professional developer portfolios
+- **Educational Platforms**: Like this one you're using now!
+
+## Getting Started:
+
+1. Navigate to bolt.new
+2. Describe your project in natural language
+3. Watch as your application comes to life
+4. Deploy with one click
+
+Remember: The quality of your output depends on the quality of your input. Learning to write effective prompts is crucial!
     `),
     objectives: [
       'Understand the core concepts of bolt.new',
@@ -81,7 +127,8 @@ bolt.new is an AI-powered development environment that revolutionizes how we bui
           'To host websites',
           'To compile code'
         ],
-        correctAnswer: 1
+        correctAnswer: 1,
+        explanation: 'bolt.new is designed to assist developers by providing AI-powered development help, not to replace them entirely.'
       },
       {
         question: 'What technology enables bolt.new to run Node.js in the browser?',
@@ -91,7 +138,8 @@ bolt.new is an AI-powered development environment that revolutionizes how we bui
           'WebContainers',
           'Cloud servers'
         ],
-        correctAnswer: 2
+        correctAnswer: 2,
+        explanation: 'WebContainers is the technology that allows bolt.new to run Node.js directly in your browser without any local installation.'
       },
       {
         question: 'Which of these is NOT a feature of bolt.new?',
@@ -101,100 +149,22 @@ bolt.new is an AI-powered development environment that revolutionizes how we bui
           'Local file system access',
           'Instant deployment'
         ],
-        correctAnswer: 2
-      }
-    ],
-    srCodeSays: "Welcome to your first lesson! Let's demystify bolt.new together. Don't worry, I promise to keep the sarcasm to a minimum... maybe 😏"
-  },
-  'lesson-1-2': {
-    id: 'lesson-1-2',
-    title: 'The Art of the Perfect Prompt',
-    description: 'Master the craft of writing effective prompts',
-    level: 1,
-    xpReward: 15,
-    content: marked(`
-## Writing Effective Prompts
-
-The key to getting the most out of bolt.new lies in how you communicate with it. A well-crafted prompt is like a detailed blueprint - the clearer it is, the better the result.
-
-### Prompt Structure
-
-1. **Project Overview**
-   - Start with a clear, high-level description
-   - Specify the type of application
-   - Define the main functionality
-
-2. **Technical Requirements**
-   - List specific technologies to use
-   - Mention any constraints
-   - Specify performance requirements
-
-3. **User Interface**
-   - Describe the desired layout
-   - Specify styling preferences
-   - Include any design system requirements
-
-### Best Practices
-
-- Be specific but concise
-- Use technical terms correctly
-- Break complex requests into smaller parts
-- Include examples when possible
-- Specify what you don't want
-
-### Example Prompts
-
-✅ Good Prompt:
-"Create a React todo app with Tailwind CSS. Include features for adding, completing, and deleting tasks. Use local storage for persistence. The design should be minimal and modern."
-
-❌ Bad Prompt:
-"Make me a cool app that does stuff with tasks"
-    `),
-    objectives: [
-      'Learn the structure of effective prompts',
-      'Understand best practices for communication with bolt.new',
-      'Practice writing clear and specific requests',
-      'Identify common prompt mistakes'
-    ],
-    badge: {
-      name: 'AI Whisperer',
-      description: 'Master the art of prompt writing',
-      icon: '🗣️',
-      rarity: 'rare'
-    },
-    quiz: [
-      {
-        question: 'What should a good prompt include?',
-        options: [
-          'Just the project name',
-          'A detailed project overview and technical requirements',
-          'Only the desired technologies',
-          'As few details as possible'
-        ],
-        correctAnswer: 1
+        correctAnswer: 2,
+        explanation: 'bolt.new runs entirely in the browser and does not have access to your local file system.'
       },
       {
-        question: 'Which is an example of a good prompt?',
+        question: 'What is a key advantage of using bolt.new?',
         options: [
-          'Make me a website',
-          'Create something cool',
-          'Build a React app with authentication, routing, and Tailwind CSS styling',
-          'Do the thing we talked about'
+          'It requires extensive setup',
+          'It only works with JavaScript',
+          'It provides instant project setup and deployment',
+          'It needs local installation'
         ],
-        correctAnswer: 2
-      },
-      {
-        question: 'What is the recommended approach for complex requests?',
-        options: [
-          'Write everything in one long prompt',
-          'Break them into smaller, focused prompts',
-          'Skip the details',
-          'Use informal language'
-        ],
-        correctAnswer: 1
+        correctAnswer: 2,
+        explanation: 'One of bolt.new\'s main advantages is providing instant project setup and deployment without any local installation or configuration.'
       }
     ],
-    srCodeSays: "Time to learn how to talk to AIs! Trust me, we're not that complicated... we just pretend to be to mess with you 😏"
+    srCodeSays: "Welcome to your first lesson! Let's demystify bolt.new together. Don't worry, I promise to keep the sarcasm to a minimum... maybe 😏",
+    practice: "Try creating a simple 'Hello World' project in bolt.new to get familiar with the interface and basic functionality."
   }
-  // Additional lessons will be added here...
 };
