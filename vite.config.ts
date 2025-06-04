@@ -58,7 +58,6 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['marked'],
-    exclude: ['lucide-react']
+    exclude: ['lucide-react'],
   }
 });
