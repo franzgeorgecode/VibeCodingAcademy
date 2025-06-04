@@ -11,13 +11,31 @@ import CertificateTab from './CertificateTab';
 interface UserProgress {
   lesson_id: string;
   completed: boolean;
-  quiz_score: number;
+  score: number; // Changed from quiz_score
+  attempts?: number;
 }
 
+// Interface for the data structure expected by userBadges state and BadgesTab
 interface UserBadge {
   badge_name: string;
   badge_xp: number;
   earned_at: string;
+  icon?: string; // Optional: if BadgesTab might use it later
+  description?: string; // Optional
+  rarity?: string; // Optional
+}
+
+// Interface for the raw data fetched from Supabase (with nested badge details)
+interface FetchedUserBadge {
+  earned_at: string;
+  badge_id: string;
+  badges: {
+    name: string;
+    xp_reward: number;
+    icon?: string;
+    description?: string;
+    rarity?: string;
+  } | null;
 }
 
 export default function Dashboard() {
@@ -119,33 +137,59 @@ export default function Dashboard() {
       // Fetch user progress
       const { data: progress, error: progressError } = await supabase
         .from('user_progress')
-        .select('lesson_id, completed, quiz_score') // Select only necessary fields
+        .select('lesson_id, completed, score, attempts') // Corrected: quiz_score to score, added attempts
         .eq('user_id', currentUser.id);
 
       if (progressError) {
-        console.error('[Dashboard] fetchUserData: Error fetching user_progress.', progressError);
-        // Don't return, try to fetch badges anyway, or handle more gracefully
+        console.error('[Dashboard] fetchUserData: Error fetching user_progress. Status:', progressError?.code, 'Message:', progressError?.message, 'Details:', progressError?.details, 'Hint:', progressError?.hint, progressError);
       } else {
         console.log('[Dashboard] fetchUserData: User progress data received:', progress);
         setUserProgress(progress || []);
       }
 
-      // Fetch user badges
-      const { data: badges, error: badgesError } = await supabase
+      // Fetch user badges with a JOIN to the badges table
+      const { data: fetchedBadgesData, error: badgesError } = await supabase
         .from('user_badges')
-        .select('badge_name, badge_xp, earned_at') // Select only necessary fields
+        .select(`
+          earned_at,
+          badge_id,
+          badges (
+            name,
+            xp_reward,
+            icon,
+            description,
+            rarity
+          )
+        `)
         .eq('user_id', currentUser.id)
         .order('earned_at', { ascending: false });
 
       if (badgesError) {
-        console.error('[Dashboard] fetchUserData: Error fetching user_badges.', badgesError);
+        console.error('[Dashboard] fetchUserData: Error fetching user_badges. Status:', badgesError?.code, 'Message:', badgesError?.message, 'Details:', badgesError?.details, 'Hint:', badgesError?.hint, badgesError);
+        setUserBadges([]); // Set to empty array on error
       } else {
-        console.log('[Dashboard] fetchUserData: User badges data received:', badges);
-        setUserBadges(badges || []);
+        console.log('[Dashboard] fetchUserData: Raw user badges data received:', fetchedBadgesData);
+        const transformedBadges = (fetchedBadgesData || [])
+          .map((ub: FetchedUserBadge) => {
+            if (!ub.badges) return null;
+            return {
+              badge_name: ub.badges.name,
+              badge_xp: ub.badges.xp_reward,
+              earned_at: ub.earned_at,
+              icon: ub.badges.icon,
+              description: ub.badges.description,
+              rarity: ub.badges.rarity,
+              // badge_id: ub.badge_id, // Can be added if UserBadge interface needs it
+            };
+          })
+          .filter(b => b !== null) as UserBadge[];
+
+        console.log('[Dashboard] fetchUserData: Transformed user badges:', transformedBadges);
+        setUserBadges(transformedBadges);
       }
 
-      // Log calculated values
-      const calculatedTotalXP = (badges || []).reduce((sum, badge) => sum + (badge.badge_xp || 0), 0);
+      // Log calculated values (userBadges state is now the transformed one)
+      const calculatedTotalXP = userBadges.reduce((sum, badge) => sum + (badge.badge_xp || 0), 0);
       const calculatedCompletedLessons = (progress || []).filter(p => p.completed).length;
       const totalLessons = Object.keys(lessonsData).length;
       const calculatedProgressPercentage = totalLessons > 0 ? Math.round((calculatedCompletedLessons / totalLessons) * 100) : 0;

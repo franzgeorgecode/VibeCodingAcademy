@@ -23,28 +23,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   error: null,
 
   fetchUser: async () => {
-    console.log('[AuthStore] fetchUser: Attempting to fetch user and session.');
-    set({ isLoading: true, error: null });
+    console.log('[AuthStore] fetchUser: Initiating.');
+    useAuthStore.setState({ isLoading: true, error: null });
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      // Fetch session separately to ensure it's fresh, especially if user was from cache
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (userError) {
         console.error('[AuthStore] fetchUser: Error fetching user:', userError);
-        throw userError;
+        useAuthStore.setState({ user: null, session: null, isLoading: false, error: userError });
+        return;
       }
       if (sessionError) {
-        // If session error, but user exists, it might be an expired session.
-        // Log it, but proceed with user if available.
-        console.warn('[AuthStore] fetchUser: Error fetching session:', sessionError);
+        console.warn('[AuthStore] fetchUser: Error fetching session (user might still be valid):', sessionError);
+        // Keep user if available, but clear session and note error
+        useAuthStore.setState({ user: user || null, session: null, isLoading: false, error: sessionError });
+        return;
       }
 
-      console.log('[AuthStore] fetchUser: User fetched:', user?.id, 'Session fetched:', !!session);
-      set({ user, session, isLoading: false });
+      console.log('[AuthStore] fetchUser: Success. User ID:', user?.id, 'Session exists:', !!session);
+      useAuthStore.setState({ user, session, isLoading: false, error: null });
     } catch (e: any) {
-      console.error('[AuthStore] fetchUser: Catch block error:', e);
-      set({ user: null, session: null, isLoading: false, error: e as AuthError });
+      console.error('[AuthStore] fetchUser: Unexpected error in try-catch:', e);
+      useAuthStore.setState({ user: null, session: null, isLoading: false, error: e as AuthError });
     }
   },
 
@@ -160,69 +161,63 @@ supabase.auth.onAuthStateChange((event, session) => {
       console.log('[AuthStore] onAuthStateChange: INITIAL_SESSION');
       if (session && session.user) {
         if (store.user?.id !== session.user.id || store.session?.access_token !== session.access_token) {
-          store.setUser(session.user, session);
+          useAuthStore.getState().setUser(session.user, session);
         } else {
-           set({ isLoading: false }); // Ensure loading is false if user is already set and matches
+          useAuthStore.setState({ isLoading: false });
         }
       } else {
-        store.clearUser(); // No session, clear user
-        set({ isLoading: false });
+        useAuthStore.getState().clearUser();
       }
       break;
     case 'SIGNED_IN':
       if (session && session.user) {
         console.log('[AuthStore] onAuthStateChange: SIGNED_IN - User signed in.');
-        store.setUser(session.user, session);
+        useAuthStore.getState().setUser(session.user, session);
       } else {
-        // This case might happen if OAuth is used and the redirect is still processing
-        // or if there's an issue getting the session right after sign-in.
-        // Fetching user again can help resolve.
         console.warn('[AuthStore] onAuthStateChange: SIGNED_IN event, but session or user is null. Re-fetching.');
-        store.fetchUser();
+        useAuthStore.getState().fetchUser();
       }
       break;
     case 'SIGNED_OUT':
       console.log('[AuthStore] onAuthStateChange: SIGNED_OUT - User signed out.');
-      store.clearUser();
+      useAuthStore.getState().clearUser();
       break;
     case 'USER_UPDATED':
       if (session && session.user) {
         console.log('[AuthStore] onAuthStateChange: USER_UPDATED - User data updated.');
-        // Only update if the user object is actually different to avoid unnecessary re-renders
-        if (JSON.stringify(store.user) !== JSON.stringify(session.user)) {
-            store.setUser(session.user, session);
+        // setUser will update user and session, and set isLoading/error appropriately.
+        if (JSON.stringify(store.user) !== JSON.stringify(session.user) || store.session?.access_token !== session.access_token) {
+            useAuthStore.getState().setUser(session.user, session);
         } else {
-            set({isLoading: false, session }); // Update session if it changed, keep user
+            useAuthStore.setState({ isLoading: false }); // Already up-to-date, ensure loading is false.
         }
       } else {
-         // If user is updated but session is null, might mean user data changed while logged out (unlikely via client)
-         // or user was deleted. For safety, fetch again or clear.
          console.warn('[AuthStore] onAuthStateChange: USER_UPDATED event, but session or user is null. Re-fetching.');
-         store.fetchUser(); // Or clearUser() if that's more appropriate
+         useAuthStore.getState().fetchUser();
       }
       break;
     case 'PASSWORD_RECOVERY':
-      console.log('[AuthStore] onAuthStateChange: PASSWORD_RECOVERY event.');
-      set({ isLoading: false, error: null }); // Clear loading/error from password reset attempt
+      console.log('[AuthStore] onAuthStateChange: PASSWORD_RECOVERY event. Clearing loading/error.');
+      useAuthStore.setState({ isLoading: false, error: null });
       break;
     case 'TOKEN_REFRESHED':
-      if (session && session.user) {
-        console.log('[AuthStore] onAuthStateChange: TOKEN_REFRESHED.');
-        // Only update if session is different. User object itself might not have changed.
-        if (store.session?.access_token !== session.access_token) {
-            set({ session, isLoading: false, error: null });
+      console.log('[AuthStore] onAuthStateChange: TOKEN_REFRESHED.');
+      if (session) {
+        if (session.user && (JSON.stringify(store.user) !== JSON.stringify(session.user) || store.session?.access_token !== session.access_token)) {
+          useAuthStore.getState().setUser(session.user, session);
+        } else if (store.session?.access_token !== session.access_token) {
+          useAuthStore.setState({ session, user: store.user, isLoading: false, error: null });
         } else {
-            set({ isLoading: false, error: null });
+          useAuthStore.setState({ isLoading: false, error: null });
         }
       } else {
-        // This is unexpected. If token is refreshed, there should be a session.
-        console.warn('[AuthStore] onAuthStateChange: TOKEN_REFRESHED event, but session or user is null. Clearing user.');
-        store.clearUser();
+        console.warn('[AuthStore] onAuthStateChange: TOKEN_REFRESHED event, but session is null. This is unexpected. Attempting to fetch user to clarify state.');
+        useAuthStore.getState().fetchUser();
       }
       break;
     default:
-      // console.log('[AuthStore] onAuthStateChange: Unhandled event:', event);
-      set({ isLoading: false }); // Ensure loading is false for any other events
+      console.log('[AuthStore] onAuthStateChange: Unhandled event or no specific action needed:', event);
+      useAuthStore.setState({ isLoading: false });
   }
 });
 
