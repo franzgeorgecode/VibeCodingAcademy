@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader, MessageCircle, X } from 'lucide-react';
 import { openRouterService } from '../lib/openrouter';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface Message {
   id: string;
@@ -21,6 +22,7 @@ interface SrCodeChatProps {
 }
 
 export default function SrCodeChat({ lessonContext, isOpen, onToggle }: SrCodeChatProps) {
+  const { t, currentLanguage } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +36,7 @@ export default function SrCodeChat({ lessonContext, isOpen, onToggle }: SrCodeCh
       const welcomeMessage: Message = {
         id: '1',
         type: 'srcode',
-        content: `Hey there! 👋 I'm SrCode, your AI mentor for "${lessonContext.title}". Ready to dive into some bolt.new magic? Ask me anything about this lesson!`,
+        content: t('srcode.welcomeMessage', { lessonTitle: lessonContext.title }),
         timestamp: new Date()
       };
       setMessages([welcomeMessage]);
@@ -79,6 +81,7 @@ export default function SrCodeChat({ lessonContext, isOpen, onToggle }: SrCodeCh
       const response = await openRouterService.chatWithSrCode(
         inputMessage.trim(),
         lessonContext,
+        currentLanguage, // Pass the current language
         selectedModel
       );
 
@@ -94,7 +97,7 @@ export default function SrCodeChat({ lessonContext, isOpen, onToggle }: SrCodeCh
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'srcode',
-        content: "Oops! I'm having some technical difficulties. Try again in a moment! 🔧",
+        content: t('srcode.errorMessage'),
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -200,7 +203,7 @@ export default function SrCodeChat({ lessonContext, isOpen, onToggle }: SrCodeCh
             <div className="bg-blue-500/20 p-3 rounded-lg">
               <div className="flex items-center space-x-2">
                 <Loader className="h-4 w-4 text-blue-400 animate-spin" />
-                <span className="text-sm text-white">SrCode is thinking...</span>
+                <span className="text-sm text-white">{t('srcode.thinking')}</span>
               </div>
             </div>
           </div>
@@ -218,7 +221,7 @@ export default function SrCodeChat({ lessonContext, isOpen, onToggle }: SrCodeCh
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask SrCode anything about this lesson..."
+            placeholder={t('srcode.placeholder')}
             className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
             disabled={isLoading}
           />

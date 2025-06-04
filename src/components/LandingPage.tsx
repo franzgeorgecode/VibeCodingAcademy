@@ -16,8 +16,11 @@ import {
   Cpu
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../contexts/LanguageContext';
+import LanguageSelector from './LanguageSelector';
 
 export default function LandingPage() {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
   const navigate = useNavigate();
@@ -41,26 +44,26 @@ export default function LandingPage() {
   const features = [
     {
       icon: <Brain className="h-12 w-12 text-blue-400" />,
-      title: "AI-Powered Learning",
-      description: "Learn with SrCode, your personal AI mentor who adapts to your pace"
+      title: t('landing.features.aiLearning.title'),
+      description: t('landing.features.aiLearning.description')
     },
     {
       icon: <Rocket className="h-12 w-12 text-purple-400" />,
-      title: "Build Real Projects",
-      description: "Master bolt.new by building actual applications, not just theory"
+      title: t('landing.features.realProjects.title'),
+      description: t('landing.features.realProjects.description')
     },
     {
       icon: <Trophy className="h-12 w-12 text-yellow-400" />,
-      title: "Earn Certificates",
-      description: "Get industry-recognized certificates to boost your career"
+      title: t('landing.features.certificates.title'),
+      description: t('landing.features.certificates.description')
     }
   ];
 
   const stats = [
-    { number: "50K+", label: "Students Trained" },
-    { number: "18", label: "Comprehensive Lessons" },
-    { number: "95%", label: "Success Rate" },
-    { number: "24/7", label: "AI Support" }
+    { number: "50K+", label: t('landing.stats.students') },
+    { number: "18", label: t('landing.stats.lessons') },
+    { number: "95%", label: t('landing.stats.successRate') },
+    { number: "24/7", label: t('landing.stats.support') }
   ];
 
   const testimonials = [
@@ -97,29 +100,28 @@ export default function LandingPage() {
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-50 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-slate-900/80 backdrop-blur-lg shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Code2 className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Vibe Coding Academy
+            <Code2 className="h-8 w-8 text-blue-400" />
+            <span className="text-2xl font-bold">
+              Vibe<span className="text-purple-400">Coding</span>
             </span>
           </div>
 
           <div className="flex items-center space-x-4">
+            <LanguageSelector variant="header" />
             <button
               onClick={() => navigate('/login')}
               className="px-6 py-2 text-gray-300 hover:text-white transition-colors"
             >
-              Login
+              {t('auth.login')}
             </button>
             <button
               onClick={() => navigate('/signup')}
               className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105"
             >
-              Start Learning
+              {t('auth.signup')}
             </button>
           </div>
         </div>
@@ -131,23 +133,17 @@ export default function LandingPage() {
           {/* Badge */}
           <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-lg rounded-full mb-8 border border-white/20">
             <Sparkles className="h-4 w-4 text-yellow-400 mr-2" />
-            <span className="text-sm font-medium">AI-Powered Learning Platform</span>
+            <span className="text-sm font-medium">{t('landing.hero.aiPowered')}</span>
           </div>
 
           {/* Main Headline */}
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Master{' '}
-            <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              bolt.new
-            </span>
-            <br />
-            with AI Mentorship
+            {t('landing.hero.title')}
           </h1>
 
           {/* Subheadline */}
           <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Learn to build full-stack applications with <strong>SrCode</strong>, your personal AI mentor.
-            From prompt engineering to deployment - master the future of web development.
+            {t('landing.hero.subtitle')}
           </p>
 
           {/* CTA Buttons */}
@@ -156,13 +152,13 @@ export default function LandingPage() {
               onClick={() => navigate('/signup')}
               className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-semibold text-lg hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 flex items-center"
             >
-              Start Your Journey
+              {t('landing.hero.startJourney')}
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </button>
 
             <button className="group px-8 py-4 bg-white/10 backdrop-blur-lg rounded-xl font-semibold text-lg border border-white/20 hover:bg-white/20 transition-all flex items-center">
               <Play className="mr-2 h-5 w-5" />
-              Watch Demo
+              {t('landing.hero.watchDemo')}
             </button>
           </div>
 
@@ -187,13 +183,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Why Choose{' '}
-              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Vibe Coding?
-              </span>
+              {t('landing.features.title')}
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Experience the future of coding education with our AI-powered platform
+              {t('landing.features.subtitle')}
             </p>
           </div>
 
@@ -274,10 +267,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Success Stories
+              {t('landing.testimonials.title')}
             </h2>
             <p className="text-xl text-gray-300">
-              Join thousands of developers who transformed their careers
+              {t('landing.testimonials.subtitle')}
             </p>
           </div>
 
@@ -316,10 +309,10 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-lg rounded-3xl p-12 border border-white/10">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Ready to Build the Future?
+              {t('landing.cta.title')}
             </h2>
             <p className="text-xl text-gray-300 mb-8">
-              Join the next generation of developers mastering AI-powered web development
+              {t('landing.cta.subtitle')}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
@@ -327,13 +320,13 @@ export default function LandingPage() {
                 onClick={() => navigate('/signup')}
                 className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-semibold text-lg hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 flex items-center"
               >
-                Start Free Today
+                {t('landing.cta.startFree')}
                 <Rocket className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </button>
 
               <div className="flex items-center space-x-2 text-gray-300">
                 <Check className="h-5 w-5 text-green-400" />
-                <span>No credit card required</span>
+                <span>{t('landing.cta.noCreditCard')}</span>
               </div>
             </div>
           </div>
@@ -350,7 +343,7 @@ export default function LandingPage() {
             <span className="text-xl font-bold">Vibe Coding Academy</span>
           </div>
           <p className="text-gray-400">
-            © 2025 Vibe Coding Academy. Building the future, one developer at a time.
+            © 2025 Vibe Coding Academy. {t('landing.footer.tagline')}
           </p>
         </div>
       </footer>
