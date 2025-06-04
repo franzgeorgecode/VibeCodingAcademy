@@ -106,5 +106,3 @@ bolt.new is an AI-powered development environment that revolutionizes how we bui
   },
   // Add all other lessons here following the same structure
 };
-
-export { lessons }
