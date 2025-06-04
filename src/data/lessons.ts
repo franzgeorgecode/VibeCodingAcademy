@@ -1,15 +1,4 @@
-import { marked } from 'marked';
-import hljs from 'highlight.js';
-
-// Configure marked with syntax highlighting
-marked.setOptions({
-  highlight: function(code, lang) {
-    if (lang && hljs.getLanguage(lang)) {
-      return hljs.highlight(code, { language: lang }).value;
-    }
-    return code;
-  }
-});
+import { renderMarkdown } from '../utils/markdown';
 
 export interface Lesson {
   id: string;
@@ -42,7 +31,7 @@ export const lessons: Record<string, Lesson> = {
     description: 'Understand bolt.new as an AI web development agent',
     level: 1,
     xpReward: 10,
-    content: marked(`
+    content: renderMarkdown(`
 # What the Hell is bolt.new?
 
 Welcome to your first lesson in the Vibe Coding Academy! I'm SrCode, and I'll be your mentor throughout this journey.
@@ -84,18 +73,18 @@ Built-in integration with:
 
 ## Why bolt.new is Revolutionary:
 
-1. **Speed**: Build applications in minutes, not days
-2. **Accessibility**: No need to be an expert coder
-3. **Integration**: Everything works together seamlessly
-4. **Learning**: Great for understanding modern web development
+1. Speed: Build applications in minutes, not days
+2. Accessibility: No need to be an expert coder
+3. Integration: Everything works together seamlessly
+4. Learning: Great for understanding modern web development
 
 ## Common Use Cases:
 
-- **Landing Pages**: Beautiful, responsive marketing sites
-- **SaaS Applications**: Complete business applications
-- **E-commerce**: Online stores with payment integration
-- **Portfolios**: Professional developer portfolios
-- **Educational Platforms**: Like this one you're using now!
+- Landing Pages: Beautiful, responsive marketing sites
+- SaaS Applications: Complete business applications
+- E-commerce: Online stores with payment integration
+- Portfolios: Professional developer portfolios
+- Educational Platforms: Like this one you're using now!
 
 ## Getting Started:
 
@@ -167,4 +156,5 @@ Remember: The quality of your output depends on the quality of your input. Learn
     srCodeSays: "Welcome to your first lesson! Let's demystify bolt.new together. Don't worry, I promise to keep the sarcasm to a minimum... maybe 😏",
     practice: "Try creating a simple 'Hello World' project in bolt.new to get familiar with the interface and basic functionality."
   }
+  // Additional lessons will be added here...
 };
