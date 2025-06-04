@@ -29,17 +29,25 @@ ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT FALSE NOT NULL;
 -- An UPDATE policy would be needed for the upsert logic in LessonView to modify 'completed'.
 -- Let's assume a suitable UPDATE policy exists or add a basic one.
 
--- Example of ensuring an update policy (if one doesn't exist or is too restrictive)
--- This might be redundant if a general "manage own data" policy exists.
+-- Drop the old RLS policy for updating user_progress if it exists, then recreate it.
+-- This ensures the policy uses the most up-to-date definition and applies to the correct operations.
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'user_progress' AND policyname = 'Users can update own progress'
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'user_progress'
+      AND policyname = 'Users can update own progress'
   ) THEN
-    CREATE POLICY "Users can update own progress"
-      ON public.user_progress FOR UPDATE
-      TO authenticated
-      USING (auth.uid() = user_id)
-      WITH CHECK (auth.uid() = user_id);
+    DROP POLICY "Users can update own progress" ON public.user_progress;
+    RAISE NOTICE 'Policy "Users can update own progress" on table "user_progress" dropped.';
   END IF;
+
+  CREATE POLICY "Users can update own progress"
+    ON public.user_progress
+    FOR UPDATE                             -- Specifies that this policy is for UPDATE operations
+    TO authenticated                       -- Applies to any authenticated user
+    USING (auth.uid() = user_id)           -- Allows updating rows where the user_id matches the authenticated user's ID
+    WITH CHECK (auth.uid() = user_id);     -- Enforces that any new or modified row must also satisfy this condition
+  RAISE NOTICE 'Policy "Users can update own progress" on table "user_progress" created/recreated.';
 END $$;
