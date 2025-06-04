@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore'; // Import useAuthStore
 import LessonsTab from './LessonsTab';
 import BadgesTab from './BadgesTab';
 import CertificateTab from './CertificateTab';
+import ProfileTab from './ProfileTab';
 
 interface UserProgress {
   lesson_id: string;
@@ -328,6 +329,17 @@ export default function Dashboard() {
           >
             {t('dashboard.tabs.certificate')}
           </button>
+          {/* New Profile Tab Button */}
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'profile'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {t('navigation.profile', { defaultValue: 'Profile' })}
+          </button>
         </nav>
       </div>
 
@@ -353,6 +365,8 @@ export default function Dashboard() {
           onCertificateGenerate={refreshData} // Changed from original, now passing refreshData
         />
       )}
+      {/* New Profile Tab Content */}
+      {activeTab === 'profile' && <ProfileTab />}
     </div>
   );
 }
