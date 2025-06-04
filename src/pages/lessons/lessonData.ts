@@ -103,6 +103,7 @@ bolt.new is an AI-powered development environment that revolutionizes how we bui
       rarity: 'common'
     },
     srCodeSays: "bolt.new is like having a senior developer who never gets tired, never asks for coffee, and never argues about tabs vs spaces. Amazing, right?"
-  },
-  // Add all other lessons here following the same structure
+  }
 };
+
+export { lessons }
