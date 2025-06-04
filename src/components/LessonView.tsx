@@ -8,13 +8,15 @@ import Quiz from './Quiz';
 import SrCodeChat from './SrCodeChat';
 
 interface UserProgress {
-  id?: number;
+  id?: string; // Changed from number to string to match UUID from gen_random_uuid()
   user_id: string;
   lesson_id: string;
   completed: boolean;
-  quiz_score: number;
-  quiz_attempts: number;
+  score: number; // Changed from quiz_score
+  attempts: number; // Changed from quiz_attempts
   completed_at: string | null;
+  time_spent?: number; // Added from schema
+  hints_used?: number; // Added from schema
 }
 
 interface UserBadge {
@@ -49,29 +51,34 @@ export default function LessonView() {
     checkUserProgress();
 
     // Set translated content
-    const learningObjectivesArray = currentLesson.learningObjectives.map((_, index) =>
-      t(`lessons.${lessonId}.learningObjectives.${index}`, { defaultValue: currentLesson.learningObjectives[index] })
-    );
+    const objectivesArray = [];
+    if (currentLesson && typeof currentLesson.numberOfLearningObjectives === 'number') {
+      for (let i = 0; i < currentLesson.numberOfLearningObjectives; i++) {
+        objectivesArray.push(t(`lessons.${lessonId}.learningObjectives.${i}`, { defaultValue: '' }));
+      }
+    }
 
     setTranslatedLesson({
-      title: t(`lessons.${lessonId}.title`, { defaultValue: currentLesson.title }),
-      objective: t(`lessons.${lessonId}.objective`, { defaultValue: currentLesson.objective }),
-      content: t(`lessons.${lessonId}.content`, { defaultValue: currentLesson.content }),
-      learningObjectives: learningObjectivesArray,
-      badgeName: t(`lessons.${lessonId}.badgeName`, { defaultValue: currentLesson.badgeName }),
-      srcodeCommentary: t(`lessons.${lessonId}.srcodeCommentary`, { defaultValue: currentLesson.srcodeCommentary }),
-      practiceDescription: currentLesson.practiceDescription ? t(`lessons.${lessonId}.practiceDescription`, { defaultValue: currentLesson.practiceDescription }) : undefined,
+      title: t(`lessons.${lessonId}.title`, { defaultValue: `[Title: lessons.${lessonId}.title]` }),
+      objective: t(`lessons.${lessonId}.objective`, { defaultValue: `[Objective: lessons.${lessonId}.objective]` }),
+      content: t(`lessons.${lessonId}.content`, { defaultValue: `[Content for lessons.${lessonId}.content]` }),
+      learningObjectives: objectivesArray,
+      badgeName: t(`lessons.${lessonId}.badgeName`, { defaultValue: `[Badge: lessons.${lessonId}.badgeName]` }),
+      srcodeCommentary: t(`lessons.${lessonId}.srcodeCommentary`, { defaultValue: '' }), // Empty string for user-facing, non-critical text
+      practiceDescription: currentLesson.practiceDescription
+                           ? t(`lessons.${lessonId}.practiceDescription`, { defaultValue: '' }) // Empty string for user-facing
+                           : undefined,
     });
 
-  }, [lessonId, navigate, t, currentLesson]); // Added t and currentLesson to dependencies
+  }, [lessonId, navigate, t, currentLesson]);
 
   const checkUserProgress = async () => {
-    if (!lessonId || !currentLesson) { // currentLesson check is important here
+    if (!lessonId || !currentLesson) {
         console.warn("LessonView: checkUserProgress called without valid lessonId or currentLesson structure.");
         return;
     }
-    // Use translated title for logging if available, otherwise fallback
-    const titleForLog = translatedLesson?.title || currentLesson.title;
+    // Use translated title for logging if available, otherwise use lessonId as title is no longer in currentLesson
+    const titleForLog = translatedLesson?.title || lessonId;
     console.log(`Checking user progress for lesson: ${currentLesson.id} (${titleForLog})`);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -82,13 +89,13 @@ export default function LessonView() {
 
       const { data: progress, error } = await supabase
         .from('user_progress')
-        .select('*')
+        .select('id, user_id, lesson_id, completed, completed_at, score, attempts, time_spent, hints_used')
         .eq('user_id', user.id)
         .eq('lesson_id', currentLesson.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error(`Error checking user progress for lesson ${currentLesson.id}:`, error);
+      if (error && error.code !== 'PGRST116') { // PGRST116: " exactamente una fila esperada, pero se encontraron 0 filas" (no progress yet)
+        console.error(`[LessonView] checkUserProgress: Error fetching user_progress for lesson ${currentLesson.id}. Status: ${error?.code}, Message: ${error?.message}, Details: ${error?.details}, Hint: ${error?.hint}`, error);
         return;
       }
 
@@ -126,23 +133,24 @@ export default function LessonView() {
 
       console.log('Lesson completion data determination:', {
         userId: user.id,
-        lessonId: currentLesson.id, // Use ID from original structure
-        score: quizScore,
+        lessonId: currentLesson.id,
+        score: quizScore, // This is the new score from the current quiz attempt
         isCompleted,
-        badgeName: translatedLesson.badgeName, // Use translated
-        badgeXP: currentLesson.badgeXp, // XP comes from original structure
-        currentAttempts: userProgress?.quiz_attempts || 0,
+        badgeName: translatedLesson.badgeName,
+        badgeXP: currentLesson.badgeXp,
+        currentAttempts: userProgress?.attempts || 0, // Use 'attempts' from UserProgress interface
         previousCompletedStatus: userProgress?.completed,
-        previousScore: userProgress?.quiz_score
+        previousScore: userProgress?.score // Use 'score' from UserProgress interface
       });
 
       const upsertData: Partial<UserProgress> = {
         user_id: user.id,
         lesson_id: currentLesson.id,
         completed: isCompleted,
-        quiz_score: quizScore,
-        quiz_attempts: (userProgress?.quiz_attempts || 0) + 1,
+        score: quizScore, // Use 'score' for DB column
+        attempts: (userProgress?.attempts || 0) + 1, // Use 'attempts' for DB column
         completed_at: isCompleted ? new Date().toISOString() : userProgress?.completed_at || null
+        // time_spent and hints_used are not tracked in this function currently
       };
 
       const { data: progressDataArray, error: progressError } = await supabase
@@ -357,13 +365,13 @@ export default function LessonView() {
          <div className="flex items-center space-x-4 text-sm text-gray-500 border-t pt-4">
               <div className="flex items-center">
                 <BookOpen className="h-4 w-4 mr-1" />
-                 {/* Reading time might not be in lessonsData, if so, use fallback or add to translations */}
-                 {t('lessons.readingTime', { minutes: currentLesson.readingTime || t(`lessons.${lessonId}.readingTime`, {defaultValue: '10-15'}) })}
+                 {t('lessons.readingTime', { minutes: currentLesson.readingTime || '10-15' })}
               </div>
         </div>
       </div>
 
-      {translatedLesson.learningObjectives && translatedLesson.learningObjectives.length > 0 && (
+      {/* Ensure learningObjectives is an array and has items before mapping */}
+      {Array.isArray(translatedLesson.learningObjectives) && translatedLesson.learningObjectives.length > 0 && (
         <div className="bg-blue-50 rounded-lg p-6 mb-6 border border-blue-200">
           <h2 className="text-xl font-semibold text-blue-900 mb-3">{t('lessons.learningObjectives')}</h2>
           <ul className="space-y-2">
@@ -406,8 +414,8 @@ export default function LessonView() {
         <div>
           {userProgress && userProgress.quiz_attempts > 0 && (
             <p className="text-sm text-gray-600">
-              {t('quiz.bestScore', { score: userProgress.quiz_score })}
-              {userProgress.quiz_score < 85 && !userProgress.completed && ` (${t('lessons.requiredScore', { score: 85 })})`}
+              {t('quiz.bestScore', { score: userProgress.score })}
+              {userProgress.score < 85 && !userProgress.completed && ` (${t('lessons.requiredScore', { score: 85 })})`}
             </p>
           )}
         </div>
@@ -416,7 +424,7 @@ export default function LessonView() {
           onClick={() => setShowQuiz(true)}
           className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 flex items-center font-semibold text-lg transition-colors"
         >
-          {lessonCompleted ? t('quiz.retakeQuiz') : (userProgress?.quiz_attempts || 0) > 0 && (userProgress?.quiz_score || 0) < 85 ? t('quiz.retakeQuiz') : t('lessons.takeQuiz')}
+          {lessonCompleted ? t('quiz.retakeQuiz') : (userProgress?.attempts || 0) > 0 && (userProgress?.score || 0) < 85 ? t('quiz.retakeQuiz') : t('lessons.takeQuiz')}
           <ArrowRight className="h-5 w-5 ml-2" />
         </button>
       </div>
