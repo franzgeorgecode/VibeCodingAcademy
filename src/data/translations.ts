@@ -86,7 +86,7 @@ export const translations = {
         alex: {
           name: 'Alex Chen',
           role: 'Full-Stack Developer',
-          content: 'SrCode taught me bolt.new faster than any bootcamp. Now I'm building production apps in days, not months.'
+          content: 'SrCode taught me bolt.new faster than any bootcamp. Now I\'m building production apps in days, not months.'
         },
         maria: {
           name: 'Maria Rodriguez',
