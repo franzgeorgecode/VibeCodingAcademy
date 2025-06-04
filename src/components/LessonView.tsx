@@ -114,6 +114,7 @@ export default function LessonView() {
   };
 
   const markLessonComplete = async (quizScore: number) => {
+    let specificProgressErrorAlerted = false;
     const userIdForLog = (await supabase.auth.getUser()).data.user?.id;
     console.log('Starting markLessonComplete with:', {
       quizScore,
@@ -164,6 +165,7 @@ export default function LessonView() {
       if (progressError) {
         console.error('Progress update failed:', progressError);
         alert(t('common.error') + `: ${progressError.message}`);
+        specificProgressErrorAlerted = true; // Set the flag here
         throw progressError;
       }
 
@@ -237,9 +239,25 @@ export default function LessonView() {
 
     } catch (error) {
       console.error('Error in markLessonComplete catch block:', error);
-      if (!(error instanceof Error && error.message.includes(t('common.error')))) {
-        alert(t('common.error') + ': An unexpected error occurred.');
+      // Only show generic alert if a specific progress error wasn't already shown
+      if (!specificProgressErrorAlerted) {
+        // Check if the error object itself is the one from a Supabase error that might have been rethrown
+        // and its message was already displayed. This check is a bit more robust.
+        let supabaseMessageAlreadyShown = false;
+        if (error instanceof Error) {
+          // This condition is tricky because progressError.message might be complex.
+          // The flag specificProgressErrorAlerted is the primary mechanism.
+          // However, as a fallback, if the error being caught has a message that
+          // implies it's a direct rethrow of a Supabase error whose message
+          // would have included t('common.error'), we might avoid alerting again.
+          // For simplicity and reliability, we will primarily rely on the flag.
+        }
+
+        // The main logic: if the specific flag isn't set, then this is a new, unexpected error.
+        alert(t('common.error') + ': ' + t('common.unexpectedError', {defaultValue: 'An unexpected error occurred.'}));
       }
+      // If specificProgressErrorAlerted is true, the error was logged, specific alert shown,
+      // and then re-thrown. The console.error above still logs it, which is good.
     }
   };
 
