@@ -10,9 +10,9 @@ const LESSON_STRUCTURE = [
     titleKey: 'lessons.levels.foundations',
     descriptionKey: 'lessons.descriptions.foundations',
     lessons: [
-      { id: "lesson-1-1", title: "What the Hell is bolt.new?", xp: 10, orderInLevel: 1 }, // Added orderInLevel
-      { id: "lesson-1-2", title: "The Art of the Perfect Prompt", xp: 15, orderInLevel: 2 },
-      { id: "lesson-1-3", title: "WebContainers: The Magic Behind the Curtain", xp: 20, orderInLevel: 3 }
+      { id: "lesson-1-1", lessonTitleKey: "lessons.lesson-1-1.title", xp: 10, orderInLevel: 1 }, // Added orderInLevel
+      { id: "lesson-1-2", lessonTitleKey: "lessons.lesson-1-2.title", xp: 15, orderInLevel: 2 },
+      { id: "lesson-1-3", lessonTitleKey: "lessons.lesson-1-3.title", xp: 20, orderInLevel: 3 }
     ]
   },
   {
@@ -20,9 +20,9 @@ const LESSON_STRUCTURE = [
     titleKey: 'lessons.levels.databases',
     descriptionKey: 'lessons.descriptions.databases',
     lessons: [
-      { id: "lesson-2-1", title: "Connecting Supabase Like a Pro", xp: 25, orderInLevel: 1 },
-      { id: "lesson-2-2", title: "Database Schemas: Your New Best Friend", xp: 30, orderInLevel: 2 },
-      { id: "lesson-2-3", title: "Edge Functions: Unlimited Power", xp: 40, orderInLevel: 3 }
+      { id: "lesson-2-1", lessonTitleKey: "lessons.lesson-2-1.title", xp: 25, orderInLevel: 1 },
+      { id: "lesson-2-2", lessonTitleKey: "lessons.lesson-2-2.title", xp: 30, orderInLevel: 2 },
+      { id: "lesson-2-3", lessonTitleKey: "lessons.lesson-2-3.title", xp: 40, orderInLevel: 3 }
     ]
   },
   {
@@ -30,9 +30,9 @@ const LESSON_STRUCTURE = [
     titleKey: 'lessons.levels.authentication',
     descriptionKey: 'lessons.descriptions.authentication',
     lessons: [
-      { id: "lesson-3-1", title: "Auth Basics: Who Are You", xp: 35, orderInLevel: 1 },
-      { id: "lesson-3-2", title: "Protecting Routes Like Fort Knox", xp: 45, orderInLevel: 2 },
-      { id: "lesson-3-3", title: "Social Auth: The Easy Way", xp: 50, orderInLevel: 3 }
+      { id: "lesson-3-1", lessonTitleKey: "lessons.lesson-3-1.title", xp: 35, orderInLevel: 1 },
+      { id: "lesson-3-2", lessonTitleKey: "lessons.lesson-3-2.title", xp: 45, orderInLevel: 2 },
+      { id: "lesson-3-3", lessonTitleKey: "lessons.lesson-3-3.title", xp: 50, orderInLevel: 3 }
     ]
   },
   {
@@ -40,9 +40,9 @@ const LESSON_STRUCTURE = [
     titleKey: 'lessons.levels.deployment',
     descriptionKey: 'lessons.descriptions.deployment',
     lessons: [
-      { id: "lesson-4-1", title: "Netlify: Your Best Friend for Deploy", xp: 55, orderInLevel: 1 },
-      { id: "lesson-4-2", title: "Custom Domains: Your Personal Brand", xp: 60, orderInLevel: 2 },
-      { id: "lesson-4-3", title: "CI/CD: The Future is Now", xp: 70, orderInLevel: 3 }
+      { id: "lesson-4-1", lessonTitleKey: "lessons.lesson-4-1.title", xp: 55, orderInLevel: 1 },
+      { id: "lesson-4-2", lessonTitleKey: "lessons.lesson-4-2.title", xp: 60, orderInLevel: 2 },
+      { id: "lesson-4-3", lessonTitleKey: "lessons.lesson-4-3.title", xp: 70, orderInLevel: 3 }
     ]
   },
   {
@@ -50,9 +50,9 @@ const LESSON_STRUCTURE = [
     titleKey: 'lessons.levels.integrations',
     descriptionKey: 'lessons.descriptions.integrations',
     lessons: [
-      { id: "lesson-5-1", title: "GitHub: Your Safety Net", xp: 65, orderInLevel: 1 },
-      { id: "lesson-5-2", title: "Stripe: Show Me The Money", xp: 75, orderInLevel: 2 },
-      { id: "lesson-5-3", title: "Figma to Code: Pure Magic", xp: 80, orderInLevel: 3 }
+      { id: "lesson-5-1", lessonTitleKey: "lessons.lesson-5-1.title", xp: 65, orderInLevel: 1 },
+      { id: "lesson-5-2", lessonTitleKey: "lessons.lesson-5-2.title", xp: 75, orderInLevel: 2 },
+      { id: "lesson-5-3", lessonTitleKey: "lessons.lesson-5-3.title", xp: 80, orderInLevel: 3 }
     ]
   },
   {
@@ -60,9 +60,9 @@ const LESSON_STRUCTURE = [
     titleKey: 'lessons.levels.mastery',
     descriptionKey: 'lessons.descriptions.mastery',
     lessons: [
-      { id: "lesson-6-1", title: "Final Project: Complete App", xp: 100, orderInLevel: 1 },
-      { id: "lesson-6-2", title: "Optimization and Performance", xp: 90, orderInLevel: 2 },
-      { id: "lesson-6-3", title: "SrCode Certification", xp: 200, orderInLevel: 3 }
+      { id: "lesson-6-1", lessonTitleKey: "lessons.lesson-6-1.title", xp: 100, orderInLevel: 1 },
+      { id: "lesson-6-2", lessonTitleKey: "lessons.lesson-6-2.title", xp: 90, orderInLevel: 2 },
+      { id: "lesson-6-3", lessonTitleKey: "lessons.lesson-6-3.title", xp: 200, orderInLevel: 3 }
     ]
   }
 ];
@@ -210,7 +210,7 @@ export default function LessonsTab({ userProgress, onProgressUpdate }: LessonsTa
                             <h3 className={`font-semibold ${
                               isUnlocked ? 'text-gray-900' : 'text-gray-500'
                             }`}>
-                              {lesson.title} {/* Lesson titles are still hardcoded in LESSON_STRUCTURE as per prompt */}
+                              {t(lesson.lessonTitleKey)}
                             </h3>
                             <div className="flex items-center space-x-4 text-sm">
                               <span className={`flex items-center ${
