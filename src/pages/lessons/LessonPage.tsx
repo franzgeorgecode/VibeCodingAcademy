@@ -5,178 +5,18 @@ import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { useUserProgressStore } from '@/stores/userProgressStore';
 import { useSrCodeStore } from '@/stores/srCodeStore';
 import SrCodeAvatar from '@/components/srcode/SrCodeAvatar';
-
-// Complete lesson content based on the structured learning path
-const getLessonContent = (lessonId: string) => {
-  const lessons = {
-    'lesson-1-1': {
-      title: 'What the Hell is bolt.new?',
-      description: 'Understand bolt.new as an AI web development agent',
-      level: 1,
-      xpReward: 10,
-      content: `
-## Introduction to bolt.new
-
-bolt.new is an AI-powered development environment that revolutionizes how we build web applications. Created by StackBlitz, it's like having a senior developer available 24/7 who never gets tired and never judges your code (well, maybe a little 😉).
-
-### What Makes bolt.new Special?
-
-1. **AI-Powered Development**
-   - Creates complete projects from natural language descriptions
-   - Provides intelligent code suggestions and solutions
-   - Explains complex concepts in simple terms
-   - Adapts to your coding style and preferences
-
-2. **WebContainer Technology**
-   - Runs Node.js directly in your browser
-   - No local setup required
-   - Instant project creation and deployment
-   - Seamless development experience
-
-3. **Real-Time Collaboration**
-   - Share your workspace with a single URL
-   - Get instant feedback from the AI
-   - Perfect for pair programming and learning
-
-### Key Features
-
-- **Project Generation**: Create complete applications with simple prompts
-- **Code Assistance**: Get help with debugging and optimization
-- **Best Practices**: Learn modern development patterns
-- **Instant Deployment**: Deploy your apps with a single click
-      `,
-      objectives: [
-        'Understand the core concepts of bolt.new',
-        'Learn about WebContainer technology',
-        'Explore AI-powered development features',
-        'Identify when and how to use bolt.new effectively'
-      ],
-      quiz: [
-        {
-          question: 'What is the primary purpose of bolt.new?',
-          options: [
-            'To replace human developers',
-            'To provide AI-powered development assistance',
-            'To host websites',
-            'To compile code'
-          ],
-          correctIndex: 1
-        },
-        {
-          question: 'What technology enables bolt.new to run Node.js in the browser?',
-          options: [
-            'Docker containers',
-            'Virtual machines',
-            'WebContainers',
-            'Cloud servers'
-          ],
-          correctIndex: 2
-        },
-        {
-          question: 'Which of these is NOT a feature of bolt.new?',
-          options: [
-            'Code generation',
-            'Real-time collaboration',
-            'Local file system access',
-            'Instant deployment'
-          ],
-          correctIndex: 2
-        }
-      ]
-    },
-    'lesson-1-2': {
-      title: 'The Art of the Perfect Prompt',
-      description: 'Master the craft of writing effective prompts for bolt.new',
-      level: 1,
-      xpReward: 15,
-      content: `
-## Writing Effective Prompts
-
-The key to getting the most out of bolt.new lies in how you communicate with it. A well-crafted prompt is like a detailed blueprint - the clearer it is, the better the result.
-
-### Prompt Structure
-
-1. **Project Overview**
-   - Start with a clear, high-level description
-   - Specify the type of application
-   - Define the main functionality
-
-2. **Technical Requirements**
-   - List specific technologies to use
-   - Mention any constraints
-   - Specify performance requirements
-
-3. **User Interface**
-   - Describe the desired layout
-   - Specify styling preferences
-   - Include any design system requirements
-
-### Best Practices
-
-- Be specific but concise
-- Use technical terms correctly
-- Break complex requests into smaller parts
-- Include examples when possible
-- Specify what you don't want
-
-### Example Prompts
-
-✅ Good Prompt:
-"Create a React todo app with Tailwind CSS. Include features for adding, completing, and deleting tasks. Use local storage for persistence. The design should be minimal and modern."
-
-❌ Bad Prompt:
-"Make me a cool app that does stuff with tasks"
-      `,
-      objectives: [
-        'Learn the structure of effective prompts',
-        'Understand best practices for communication with bolt.new',
-        'Practice writing clear and specific requests',
-        'Identify common prompt mistakes'
-      ],
-      quiz: [
-        {
-          question: 'What should a good prompt include?',
-          options: [
-            'Just the project name',
-            'A detailed project overview and technical requirements',
-            'Only the desired technologies',
-            'As few details as possible'
-          ],
-          correctIndex: 1
-        },
-        {
-          question: 'Which is an example of a good prompt?',
-          options: [
-            'Make me a website',
-            'Create something cool',
-            'Build a React app with authentication, routing, and Tailwind CSS styling',
-            'Do the thing we talked about'
-          ],
-          correctIndex: 2
-        }
-      ]
-    }
-  };
-
-  return lessons[lessonId as keyof typeof lessons] || {
-    title: 'Lesson not found',
-    description: 'This lesson does not exist',
-    xpReward: 0,
-    content: 'Content not available',
-    objectives: [],
-    quiz: []
-  };
-};
+import { lessons } from '@/data/lessons';
 
 const LessonPage = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
-  const [lesson, setLesson] = useState(getLessonContent(lessonId || ''));
+  const [currentLesson, setCurrentLesson] = useState(lessons[lessonId || '']);
   const [quizStarted, setQuizStarted] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
+  const [attempts, setAttempts] = useState(0);
   
   const { completeLesson, completedLessons } = useUserProgressStore();
   const { addSrCodeMessage, setTyping, setMood, mood } = useSrCodeStore();
@@ -184,102 +24,95 @@ const LessonPage = () => {
   const isLessonCompleted = completedLessons.includes(lessonId || '');
   
   useEffect(() => {
-    if (lessonId) {
-      setLesson(getLessonContent(lessonId));
+    if (lessonId && lessons[lessonId]) {
+      setCurrentLesson(lessons[lessonId]);
       setQuizStarted(false);
       setCurrentQuestionIndex(0);
       setSelectedOption(null);
       setIsCorrect(null);
       setQuizCompleted(false);
       setScore(0);
+      setAttempts(0);
       
       setTyping(true);
       setMood('happy');
       
       setTimeout(() => {
-        const introMessages = [
-          `Welcome to "${lesson.title}"! Get ready to learn... or at least pretend you are 😏`,
-          `Ah, you made it to "${lesson.title}"! I hope you brought coffee, because I don't share mine ☕`,
-          `"${lesson.title}"! My favorite lesson... well, I say that about all lessons, don't feel special.`
-        ];
-        
-        addSrCodeMessage(
-          introMessages[Math.floor(Math.random() * introMessages.length)]
-        );
+        addSrCodeMessage(currentLesson.srCodeSays);
       }, 1000);
     }
-  }, [lessonId, lesson.title, addSrCodeMessage, setMood, setTyping]);
+  }, [lessonId, addSrCodeMessage, setMood, setTyping]);
   
   const startQuiz = () => {
     setQuizStarted(true);
     setMood('thinking');
-    
-    addSrCodeMessage(
-      "Quiz time! Let's see if you were paying attention or just pretending while checking Instagram..."
-    );
+    addSrCodeMessage("Quiz time! Let's see if you were actually paying attention... 🤓");
   };
   
   const handleOptionSelect = (optionIndex: number) => {
     if (isCorrect !== null) return;
     
     setSelectedOption(optionIndex);
-    
-    const currentQuestion = lesson.quiz[currentQuestionIndex];
-    const correct = optionIndex === currentQuestion.correctIndex;
+    const currentQuestion = currentLesson.quiz[currentQuestionIndex];
+    const correct = optionIndex === currentQuestion.correctAnswer;
     
     setIsCorrect(correct);
+    setScore(correct ? score + 1 : score);
     
     if (correct) {
-      setScore(score + 1);
       setMood('celebrating');
-      
-      addSrCodeMessage(
-        "Correct! Looks like your neurons are working after all. Impressive!"
-      );
+      addSrCodeMessage("Correct! Maybe you're not as hopeless as I thought! 🎉");
     } else {
       setMood('sarcastic');
-      
-      addSrCodeMessage(
-        "Hmm, not quite. But hey, mistakes are learning opportunities... or at least that's what they say to make us feel better."
-      );
+      addSrCodeMessage("Not quite... but hey, at least you're consistent in being wrong! 😏");
     }
   };
   
   const nextQuestion = () => {
-    if (currentQuestionIndex < lesson.quiz.length - 1) {
+    if (currentQuestionIndex < currentLesson.quiz.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedOption(null);
       setIsCorrect(null);
       setMood('thinking');
     } else {
-      setQuizCompleted(true);
+      const percentage = (score + (isCorrect ? 1 : 0)) / currentLesson.quiz.length * 100;
       
-      if (!isLessonCompleted) {
-        completeLesson(lessonId || '', lesson.xpReward);
-        
-        setMood('celebrating');
+      if (percentage >= 85) {
+        setQuizCompleted(true);
+        if (!isLessonCompleted) {
+          completeLesson(lessonId || '', currentLesson.xpReward);
+          setMood('celebrating');
+          addSrCodeMessage(`Amazing! ${percentage}% correct! You've earned the "${currentLesson.badge.name}" badge and ${currentLesson.xpReward} XP! 🏆`);
+        }
+      } else {
+        setAttempts(attempts + 1);
+        setMood('sarcastic');
+        addSrCodeMessage(`${percentage}% correct... You need at least 85% to pass. Want to try again? I've got all day! 😏`);
         
         setTimeout(() => {
-          const scorePercentage = (score + 1) / lesson.quiz.length * 100;
-          
-          let message = '';
-          if (scorePercentage === 100) {
-            message = "PERFECTION! 🎉 100% correct. Either you're a genius or you're really good at guessing. Either way, impressive!";
-          } else if (scorePercentage >= 80) {
-            message = "Excellent work! Almost perfect. Next time try reading ALL the words, not just the ones you like 😉";
-          } else {
-            message = "Well... you passed. Not with honors, but you passed. Remember that in programming 'almost right' means 'completely wrong', but we'll let it slide for today.";
-          }
-          
-          addSrCodeMessage(message);
-        }, 1000);
+          setQuizStarted(false);
+          setCurrentQuestionIndex(0);
+          setSelectedOption(null);
+          setIsCorrect(null);
+          setScore(0);
+        }, 3000);
       }
     }
   };
   
+  if (!currentLesson) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <h2 className="text-2xl font-bold mb-4">Lesson not found</h2>
+        <Link to="/dashboard" className="text-primary-600 hover:text-primary-700">
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
+  
   return (
     <div className="max-w-4xl mx-auto pb-16">
-      {/* Back button */}
       <div className="mb-6">
         <Link 
           to="/dashboard" 
@@ -290,7 +123,6 @@ const LessonPage = () => {
         </Link>
       </div>
       
-      {/* Lesson header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -298,15 +130,15 @@ const LessonPage = () => {
       >
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold mb-2">{lesson.title}</h1>
-            <p className="text-gray-600">{lesson.description}</p>
+            <h1 className="text-2xl font-bold mb-2">{currentLesson.title}</h1>
+            <p className="text-gray-600">{currentLesson.description}</p>
             
             <div className="flex items-center mt-4 space-x-4">
               <span className="badge bg-primary-100 text-primary-700">
-                Level {lesson.level}
+                Level {currentLesson.level}
               </span>
               <span className="text-sm text-gray-500">
-                +{lesson.xpReward} XP
+                +{currentLesson.xpReward} XP
               </span>
               
               {isLessonCompleted && (
@@ -322,22 +154,22 @@ const LessonPage = () => {
         </div>
       </motion.div>
       
-      {/* Lesson content or quiz */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1, transition: { delay: 0.2 } }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
         className="bg-white rounded-xl shadow-md overflow-hidden"
       >
         {!quizStarted ? (
           <div className="p-6">
             <div className="prose max-w-none">
-              <div dangerouslySetInnerHTML={{ __html: lesson.content }} />
+              <div dangerouslySetInnerHTML={{ __html: currentLesson.content }} />
             </div>
             
             <div className="mt-8">
               <h3 className="font-bold text-lg mb-3">Learning Objectives:</h3>
               <ul className="space-y-2">
-                {lesson.objectives.map((objective, index) => (
+                {currentLesson.objectives.map((objective, index) => (
                   <li key={index} className="flex items-center">
                     <div className="h-6 w-6 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center mr-2 text-sm">
                       {index + 1}
@@ -364,17 +196,17 @@ const LessonPage = () => {
                 <div className="mb-6 flex justify-between items-center">
                   <h3 className="font-bold text-lg">Quiz Time!</h3>
                   <span className="text-sm text-gray-600">
-                    Question {currentQuestionIndex + 1} of {lesson.quiz.length}
+                    Question {currentQuestionIndex + 1} of {currentLesson.quiz.length}
                   </span>
                 </div>
                 
                 <div className="mb-8">
                   <h4 className="text-lg font-medium mb-4">
-                    {lesson.quiz[currentQuestionIndex].question}
+                    {currentLesson.quiz[currentQuestionIndex].question}
                   </h4>
                   
                   <div className="space-y-3">
-                    {lesson.quiz[currentQuestionIndex].options.map((option, index) => (
+                    {currentLesson.quiz[currentQuestionIndex].options.map((option, index) => (
                       <button
                         key={index}
                         onClick={() => handleOptionSelect(index)}
@@ -399,7 +231,7 @@ const LessonPage = () => {
                       onClick={nextQuestion}
                       className="btn btn-primary"
                     >
-                      {currentQuestionIndex < lesson.quiz.length - 1 
+                      {currentQuestionIndex < currentLesson.quiz.length - 1 
                         ? 'Next Question' 
                         : 'Complete Quiz'}
                     </button>
@@ -408,10 +240,16 @@ const LessonPage = () => {
               </div>
             ) : (
               <div className="text-center py-8">
-                <div className="text-6xl mb-4">🎉</div>
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="text-6xl mb-4"
+                >
+                  🎉
+                </motion.div>
                 <h3 className="text-2xl font-bold mb-2">Lesson Completed!</h3>
                 <p className="text-gray-600 mb-6">
-                  You've earned {lesson.xpReward} XP and are making great progress!
+                  Congratulations! You've earned {currentLesson.xpReward} XP and the "{currentLesson.badge.name}" badge!
                 </p>
                 <Link to="/dashboard" className="btn btn-primary">
                   Return to Dashboard
@@ -422,15 +260,15 @@ const LessonPage = () => {
         )}
       </motion.div>
       
-      {/* SrCode interaction area */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0, transition: { delay: 0.4 } }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
         className="mt-8 bg-white rounded-xl shadow-md p-6"
       >
         <h3 className="font-bold text-lg mb-4">SrCode Says:</h3>
         <div className="flex items-start">
-          <SrCodeAvatar />
+          <SrCodeAvatar mood={mood} />
         </div>
       </motion.div>
     </div>
