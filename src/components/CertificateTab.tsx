@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, Award, Calendar } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext'; // Corrected path
 import { useAuthStore } from '@/stores/authStore'; // Import useAuthStore
 import jsPDF from 'jspdf';
+import { supabase } from '../lib/supabase';
 
 interface CertificateTabProps {
   completedLessons: number;
@@ -19,12 +20,57 @@ export default function CertificateTab({
   const { user } = useAuthStore(); // Get user from store
   const isEligible = completedLessons === 18; // Assuming 18 lessons total for eligibility
 
-  // Construct studentName from user metadata
-  const fullName = [user?.user_metadata?.first_name, user?.user_metadata?.last_name]
-    .filter(Boolean) // Remove any null or empty strings
-    .join(' ');
-  const studentName = fullName || t('certificate.studentNamePlaceholder', '[Student Name]');
+  const [profileName, setProfileName] = useState<string>(() => {
+    const metaFullName = [user?.user_metadata?.first_name, user?.user_metadata?.last_name]
+      .filter(Boolean)
+      .join(' ');
+    return metaFullName || t('certificate.studentNamePlaceholder', { defaultValue: '[Student Name]' });
+  });
+  const [nameLoading, setNameLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (!user?.id) {
+        setProfileName(t('certificate.studentNamePlaceholder', { defaultValue: '[Student Name]' }));
+        setNameLoading(false);
+        return;
+      }
+      try {
+        setNameLoading(true);
+        const { data, error } = await supabase
+          .from('users')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116: 0 rows, not an error for this case
+          console.error('Error fetching user name from users table:', error);
+          throw error; // Let catch block handle it
+        }
+
+        if (data && (data.first_name || data.last_name)) {
+          setProfileName(`${data.first_name || ''} ${data.last_name || ''}`.trim());
+        } else {
+          // Fallback to metadata name if profile is empty, then to placeholder
+          const metaFullName = [user?.user_metadata?.first_name, user?.user_metadata?.last_name]
+            .filter(Boolean)
+            .join(' ');
+          setProfileName(metaFullName || t('certificate.studentNamePlaceholder', { defaultValue: '[Student Name]' }));
+        }
+      } catch (fetchError) {
+        console.error('Error fetching user name for certificate:', fetchError);
+        // Use metadata or placeholder on error
+        const metaFullName = [user?.user_metadata?.first_name, user?.user_metadata?.last_name]
+            .filter(Boolean)
+            .join(' ');
+        setProfileName(metaFullName || t('certificate.studentNamePlaceholder', { defaultValue: '[Student Name]' }));
+      } finally {
+        setNameLoading(false);
+      }
+    };
+
+    fetchUserName();
+  }, [user, t]);
 
   const generatePDF = async () => {
     const pdf = new jsPDF({
@@ -56,7 +102,7 @@ export default function CertificateTab({
 
     pdf.setFontSize(28); // Student Name
     pdf.setTextColor(17, 24, 39); // text-gray-900
-    pdf.text(studentName, 148.5, 95, { align: 'center' }); // Using translated/placeholder student name
+    pdf.text(nameLoading ? t('common.loading', {defaultValue: 'Loading...'}) : profileName, 148.5, 95, { align: 'center' });
 
     pdf.setFontSize(14);
     pdf.setTextColor(75, 85, 99); // text-gray-700 equivalent
@@ -109,7 +155,9 @@ export default function CertificateTab({
             </div>
 
             <p className="text-xl text-gray-700 mb-2">{t('certificate.certifies')}</p>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">{studentName}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {nameLoading ? t('common.loading', {defaultValue: 'Loading...'}) : profileName}
+            </h2>
             <p className="text-lg text-gray-700">
               {t('certificate.hasCompleted')}<br />
               <span className="font-semibold text-blue-800">{t('certificate.courseName')}</span>
