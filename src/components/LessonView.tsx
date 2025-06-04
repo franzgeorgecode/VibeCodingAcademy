@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Award, BookOpen } from 'lucide-react';
 import { lessonsData } from '../data/lessonsData'; // Ensure this path is correct
 import { supabase } from '../lib/supabase';
 import Quiz from './Quiz'; // Ensure this path is correct
+import SrCodeChat from './SrCodeChat'; // Added SrCodeChat import
 
 // Define the UserProgress interface locally if not imported from elsewhere
 interface UserProgress {
@@ -20,17 +21,68 @@ export default function LessonView() {
   const [showQuiz, setShowQuiz] = useState(false);
   const [lessonCompleted, setLessonCompleted] = useState(false);
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null); // Can be null if no progress yet
+  const [isChatOpen, setIsChatOpen] = useState(false); // Added SrCodeChat state
 
   const currentLesson = lessonId ? lessonsData[lessonId] : null;
 
+  const checkLessonUnlock = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !currentLesson) return false;
+
+      // Primera lección siempre desbloqueada
+      if (currentLesson.level === 1 && currentLesson.orderInLevel === 1) {
+        return true;
+      }
+
+      // Verificar lección anterior en el mismo nivel
+      if (currentLesson.orderInLevel > 1) {
+        const prevLessonId = `lesson-${currentLesson.level}-${currentLesson.orderInLevel - 1}`;
+        const { data: prevProgress } = await supabase
+          .from('user_progress')
+          .select('completed')
+          .eq('user_id', user.id)
+          .eq('lesson_id', prevLessonId)
+          .single();
+
+        return prevProgress?.completed || false;
+      }
+
+      // Verificar última lección del nivel anterior
+      // Assuming 3 lessons per level for this logic, adjust if necessary
+      const { data: prevLevelProgress } = await supabase
+        .from('user_progress')
+        .select('completed')
+        .eq('user_id', user.id)
+        .eq('lesson_id', `lesson-${currentLesson.level - 1}-3`) // Asumiendo 3 lecciones por nivel
+        .single();
+
+      return prevLevelProgress?.completed || false;
+    } catch (error) {
+      console.error('Error checking lesson unlock:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (!currentLesson) {
-      console.warn(`Lesson with ID "${lessonId}" not found. Redirecting to dashboard.`);
+      // console.warn(`Lesson with ID "${lessonId}" not found. Redirecting to dashboard.`); // Original warning
       navigate('/dashboard');
       return;
     }
-    checkUserProgress();
-  }, [lessonId, navigate]); // currentLesson removed as it can cause loop if lessonsData is complex
+
+    const verifyAccess = async () => {
+      const canAccess = await checkLessonUnlock();
+      if (!canAccess) {
+        // console.warn(`User cannot access lesson "${lessonId}". Redirecting to dashboard.`); // Optional: more specific warning
+        navigate('/dashboard');
+        return;
+      }
+      checkUserProgress(); // Assuming checkUserProgress is an existing function
+    };
+
+    verifyAccess();
+  }, [lessonId, currentLesson, navigate]); // currentLesson is now a dependency
 
   const checkUserProgress = async () => {
     if (!lessonId) return; // Guard against undefined lessonId
@@ -62,58 +114,70 @@ export default function LessonView() {
     }
   };
 
+  const getNextLessonId = (lesson: any) => {
+    // Siguiente lección en el mismo nivel
+    if (lesson.orderInLevel < 3) { // Assuming 3 lessons per level for this logic
+      return `lesson-${lesson.level}-${lesson.orderInLevel + 1}`;
+    }
+
+    // Primera lección del siguiente nivel
+    if (lesson.level < 6) { // Assuming 6 levels in total
+      return `lesson-${lesson.level + 1}-1`;
+    }
+
+    return null; // Última lección
+  };
+
   const markLessonComplete = async (quizScore: number) => {
-    if (!currentLesson) return;
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user || !currentLesson) return;
 
       const isCompleted = quizScore >= 85;
 
-      const progressData = {
-        user_id: user.id,
-        lesson_id: currentLesson.id,
-        completed: isCompleted,
-        quiz_score: quizScore,
-        quiz_attempts: (userProgress?.quiz_attempts || 0) + 1,
-        completed_at: isCompleted ? new Date().toISOString() : userProgress?.completed_at || null // Preserve original completion if not re-completing now
-      };
-
+      // Actualizar progreso
       const { error: progressError } = await supabase
         .from('user_progress')
-        .upsert(progressData, { onConflict: 'user_id,lesson_id' });
-
+        .upsert({
+          user_id: user.id,
+          lesson_id: currentLesson.id,
+          completed: isCompleted,
+          quiz_score: quizScore,
+          quiz_attempts: (userProgress?.quiz_attempts || 0) + 1,
+          completed_at: isCompleted ? new Date().toISOString() : null
+        }, { onConflict: 'user_id,lesson_id' });
 
       if (progressError) throw progressError;
 
+      // Otorgar badge si se completa
       if (isCompleted) {
-         // Only add a new badge entry if one doesn't already exist for this lesson
-        const { data: existingBadge } = await supabase
+        const { error: badgeError } = await supabase
           .from('user_badges')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('lesson_id', currentLesson.id)
-          .single();
+          .upsert({ // Using upsert as per new requirement, though insert with check was fine too
+            user_id: user.id,
+            lesson_id: currentLesson.id,
+            badge_name: currentLesson.badgeName, // Assuming currentLesson has badgeName
+            badge_xp: currentLesson.badgeXp // Assuming currentLesson has badgeXp
+          }, { onConflict: 'user_id,lesson_id' }); // Ensure this onConflict is correct for user_badges
 
-        if (!existingBadge) {
-            const { error: badgeError } = await supabase
-            .from('user_badges')
-            .insert({ // Use insert instead of upsert if we only want to add once
-                user_id: user.id,
-                lesson_id: currentLesson.id, // Make sure your DB schema for user_badges has lesson_id
-                badge_name: currentLesson.badgeName,
-                badge_xp: currentLesson.badgeXp,
-                earned_at: new Date().toISOString()
-            });
-            if (badgeError) throw badgeError;
+        if (badgeError) throw badgeError;
+        setLessonCompleted(true); // Assuming setLessonCompleted is an existing state setter
+
+        // Mostrar mensaje de éxito y siguiente lección
+        const nextLessonId = getNextLessonId(currentLesson);
+        if (nextLessonId) {
+          setTimeout(() => {
+            // Using window.confirm as it's simpler than a custom modal for this example
+            if (window.confirm('¡Felicidades! ¿Quieres continuar con la siguiente lección?')) {
+              navigate(`/lesson/${nextLessonId}`);
+            }
+          }, 2000);
         }
-        setLessonCompleted(true);
       }
       setShowQuiz(false); // Go back to lesson view after quiz
-      await checkUserProgress(); // Refresh progress state
+      await checkUserProgress(); // Assuming checkUserProgress is an existing function
     } catch (error) {
       console.error('Error updating progress:', error);
-      // Potentially show an error message to the user
     }
   };
 
@@ -279,6 +343,20 @@ export default function LessonView() {
           <ArrowRight className="h-5 w-5 ml-2" />
         </button>
       </div>
+
+      {/* SrCode Chat */}
+      {currentLesson && (
+        <SrCodeChat
+          lessonContext={{
+            id: currentLesson.id,
+            title: currentLesson.title,
+            objective: currentLesson.objective,
+            level: currentLesson.level
+          }}
+          isOpen={isChatOpen}
+          onToggle={() => setIsChatOpen(!isChatOpen)}
+        />
+      )}
     </div>
   );
 }
