@@ -68,24 +68,24 @@ export default function LandingPage() {
 
   const testimonials = [
     {
-      name: "Alex Chen",
-      role: "Full-Stack Developer",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-      content: "SrCode taught me bolt.new faster than any bootcamp. Now I'm building production apps in days, not months.",
+      name: t('landing.testimonials.alex.name'),
+      role: t('landing.testimonials.alex.role'),
+      avatar: "https://randomuser.me/api/portraits/men/1.jpg", // URL que funciona
+      content: t('landing.testimonials.alex.content'), // Assuming content should also be translated
       rating: 5
     },
     {
-      name: "Maria Rodriguez",
-      role: "Startup Founder",
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-      content: "The interactive AI mentor is incredible. It's like having a senior developer guiding you 24/7.",
+      name: t('landing.testimonials.maria.name'),
+      role: t('landing.testimonials.maria.role'),
+      avatar: "https://randomuser.me/api/portraits/women/2.jpg", // URL que funciona
+      content: t('landing.testimonials.maria.content'), // Assuming content should also be translated
       rating: 5
     },
     {
-      name: "David Kim",
-      role: "Product Manager",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-      content: "From zero to deploying full-stack apps. The gamification kept me engaged throughout the journey.",
+      name: t('landing.testimonials.david.name'),
+      role: t('landing.testimonials.david.role'),
+      avatar: "https://randomuser.me/api/portraits/men/3.jpg", // URL que funciona
+      content: t('landing.testimonials.david.content'), // Assuming content should also be translated
       rating: 5
     }
   ];

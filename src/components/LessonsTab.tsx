@@ -1,94 +1,125 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, CheckCircle, Lock, Award } from 'lucide-react';
+import { useTranslation } from '../contexts/LanguageContext'; // Added
 
+// Updated LESSON_STRUCTURE with keys for translation
 const LESSON_STRUCTURE = [
   {
     level: 1,
-    title: "Foundations",
-    description: "Learn the basics of bolt.new and prompt engineering",
+    titleKey: 'lessons.levels.foundations',
+    descriptionKey: 'lessons.descriptions.foundations',
     lessons: [
-      { id: "lesson-1-1", title: "What the Hell is bolt.new?", xp: 10 },
-      { id: "lesson-1-2", title: "The Art of the Perfect Prompt", xp: 15 },
-      { id: "lesson-1-3", title: "WebContainers: The Magic Behind the Curtain", xp: 20 }
+      { id: "lesson-1-1", title: "What the Hell is bolt.new?", xp: 10, orderInLevel: 1 }, // Added orderInLevel
+      { id: "lesson-1-2", title: "The Art of the Perfect Prompt", xp: 15, orderInLevel: 2 },
+      { id: "lesson-1-3", title: "WebContainers: The Magic Behind the Curtain", xp: 20, orderInLevel: 3 }
     ]
   },
   {
     level: 2,
-    title: "Databases",
-    description: "Master Supabase integration and database design",
+    titleKey: 'lessons.levels.databases',
+    descriptionKey: 'lessons.descriptions.databases',
     lessons: [
-      { id: "lesson-2-1", title: "Connecting Supabase Like a Pro", xp: 25 },
-      { id: "lesson-2-2", title: "Database Schemas: Your New Best Friend", xp: 30 },
-      { id: "lesson-2-3", title: "Edge Functions: Unlimited Power", xp: 40 }
+      { id: "lesson-2-1", title: "Connecting Supabase Like a Pro", xp: 25, orderInLevel: 1 },
+      { id: "lesson-2-2", title: "Database Schemas: Your New Best Friend", xp: 30, orderInLevel: 2 },
+      { id: "lesson-2-3", title: "Edge Functions: Unlimited Power", xp: 40, orderInLevel: 3 }
     ]
   },
   {
     level: 3,
-    title: "Authentication",
-    description: "Implement secure user authentication systems",
+    titleKey: 'lessons.levels.authentication',
+    descriptionKey: 'lessons.descriptions.authentication',
     lessons: [
-      { id: "lesson-3-1", title: "Auth Basics: Who Are You", xp: 35 },
-      { id: "lesson-3-2", title: "Protecting Routes Like Fort Knox", xp: 45 },
-      { id: "lesson-3-3", title: "Social Auth: The Easy Way", xp: 50 }
+      { id: "lesson-3-1", title: "Auth Basics: Who Are You", xp: 35, orderInLevel: 1 },
+      { id: "lesson-3-2", title: "Protecting Routes Like Fort Knox", xp: 45, orderInLevel: 2 },
+      { id: "lesson-3-3", title: "Social Auth: The Easy Way", xp: 50, orderInLevel: 3 }
     ]
   },
   {
     level: 4,
-    title: "Deployment",
-    description: "Deploy your applications to the world",
+    titleKey: 'lessons.levels.deployment',
+    descriptionKey: 'lessons.descriptions.deployment',
     lessons: [
-      { id: "lesson-4-1", title: "Netlify: Your Best Friend for Deploy", xp: 55 },
-      { id: "lesson-4-2", title: "Custom Domains: Your Personal Brand", xp: 60 },
-      { id: "lesson-4-3", title: "CI/CD: The Future is Now", xp: 70 }
+      { id: "lesson-4-1", title: "Netlify: Your Best Friend for Deploy", xp: 55, orderInLevel: 1 },
+      { id: "lesson-4-2", title: "Custom Domains: Your Personal Brand", xp: 60, orderInLevel: 2 },
+      { id: "lesson-4-3", title: "CI/CD: The Future is Now", xp: 70, orderInLevel: 3 }
     ]
   },
   {
     level: 5,
-    title: "Integrations",
-    description: "Connect with external services and APIs",
+    titleKey: 'lessons.levels.integrations',
+    descriptionKey: 'lessons.descriptions.integrations',
     lessons: [
-      { id: "lesson-5-1", title: "GitHub: Your Safety Net", xp: 65 },
-      { id: "lesson-5-2", title: "Stripe: Show Me The Money", xp: 75 },
-      { id: "lesson-5-3", title: "Figma to Code: Pure Magic", xp: 80 }
+      { id: "lesson-5-1", title: "GitHub: Your Safety Net", xp: 65, orderInLevel: 1 },
+      { id: "lesson-5-2", title: "Stripe: Show Me The Money", xp: 75, orderInLevel: 2 },
+      { id: "lesson-5-3", title: "Figma to Code: Pure Magic", xp: 80, orderInLevel: 3 }
     ]
   },
   {
     level: 6,
-    title: "Mastery",
-    description: "Become a bolt.new expert with advanced projects",
+    titleKey: 'lessons.levels.mastery',
+    descriptionKey: 'lessons.descriptions.mastery',
     lessons: [
-      { id: "lesson-6-1", title: "Final Project: Complete App", xp: 100 },
-      { id: "lesson-6-2", title: "Optimization and Performance", xp: 90 },
-      { id: "lesson-6-3", title: "SrCode Certification", xp: 200 }
+      { id: "lesson-6-1", title: "Final Project: Complete App", xp: 100, orderInLevel: 1 },
+      { id: "lesson-6-2", title: "Optimization and Performance", xp: 90, orderInLevel: 2 },
+      { id: "lesson-6-3", title: "SrCode Certification", xp: 200, orderInLevel: 3 }
     ]
   }
 ];
 
-export default function LessonsTab({ userProgress }) {
-  const navigate = useNavigate();
+interface UserProgressItem {
+  lesson_id: string;
+  completed: boolean;
+  quiz_score?: number; // quiz_score might be optional if not taken yet
+}
 
-  const getProgressForLesson = (lessonId) => {
+interface LessonsTabProps {
+  userProgress: UserProgressItem[];
+  onProgressUpdate?: () => void; // Added prop
+}
+
+export default function LessonsTab({ userProgress, onProgressUpdate }: LessonsTabProps) {
+  const navigate = useNavigate();
+  const { t } = useTranslation(); // Added
+
+  const getProgressForLesson = (lessonId: string) => {
     return userProgress.find(p => p.lesson_id === lessonId);
   };
 
-  const isLessonUnlocked = (level, lessonIndex) => {
-    if (level === 1 && lessonIndex === 0) return true;
+  // lessonIndex is 0-based index within the level's lessons array
+  const isLessonUnlocked = (levelNumber: number, lessonOrderInLevel: number) => {
+    // First lesson of the first level is always unlocked
+    if (levelNumber === 1 && lessonOrderInLevel === 1) return true;
 
-    const currentLevelLessons = LESSON_STRUCTURE.find(l => l.level === level)?.lessons || [];
+    // For lessons other than the very first one:
+    if (lessonOrderInLevel > 1) {
+      // Check previous lesson in the same level
+      const prevLessonInSameLevel = LESSON_STRUCTURE
+        .find(l => l.level === levelNumber)?.lessons
+        .find(lesson => lesson.orderInLevel === lessonOrderInLevel - 1);
 
-    if (lessonIndex > 0) {
-      const prevLessonId = currentLevelLessons[lessonIndex - 1].id;
-      const prevProgress = getProgressForLesson(prevLessonId);
-      return prevProgress?.completed || false;
-    } else {
-      const prevLevel = LESSON_STRUCTURE.find(l => l.level === level - 1);
-      if (!prevLevel) return true; // Should not happen if levels are sequential starting from 1
+      if (prevLessonInSameLevel) {
+        const prevProgress = getProgressForLesson(prevLessonInSameLevel.id);
+        return prevProgress?.completed || false;
+      }
+    } else { // First lesson of a level (levelNumber > 1)
+      const prevLevelNumber = levelNumber - 1;
+      if (prevLevelNumber < 1) return true; // Should be caught by the first condition, but defensive
 
-      const prevLevelLastLesson = prevLevel.lessons[prevLevel.lessons.length - 1];
+      const prevLevelData = LESSON_STRUCTURE.find(l => l.level === prevLevelNumber);
+      if (!prevLevelData || prevLevelData.lessons.length === 0) {
+        // This case implies a misconfiguration or that level 1 has no lessons,
+        // which shouldn't happen if level 1 lesson 1 is the start.
+        // If previous level has no lessons, consider this one unlocked (or handle as error).
+        // For simplicity, let's assume valid structure where previous level has lessons.
+        return true;
+      }
+
+      const prevLevelLastLesson = prevLevelData.lessons[prevLevelData.lessons.length - 1];
       const prevProgress = getProgressForLesson(prevLevelLastLesson.id);
       return prevProgress?.completed || false;
     }
+    return false; // Default to locked if logic somehow fails to find a condition
   };
 
   return (
@@ -99,7 +130,9 @@ export default function LessonsTab({ userProgress }) {
           return progress?.completed;
         }).length;
 
-        const progressPercentage = level.lessons.length > 0 ? Math.round((completedCount / level.lessons.length) * 100) : 0;
+        const progressPercentage = level.lessons.length > 0
+          ? Math.round((completedCount / level.lessons.length) * 100)
+          : 0;
 
         return (
           <div key={level.level} className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -107,16 +140,17 @@ export default function LessonsTab({ userProgress }) {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold mb-2">
-                    Level {level.level}: {level.title}
+                    {t('lessons.level', { level: level.level })}: {t(level.titleKey)}
                   </h2>
-                  <p className="text-blue-100">{level.description}</p>
+                  <p className="text-blue-100">{t(level.descriptionKey)}</p>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold">
                     {completedCount}/{level.lessons.length}
                   </div>
                   <div className="text-sm text-blue-100">
-                    {progressPercentage}% Complete
+                    {/* Using dashboard.stats.progress as it's a general "Progress" term */}
+                    {progressPercentage}% {t('dashboard.stats.progress')}
                   </div>
                 </div>
               </div>
@@ -131,20 +165,21 @@ export default function LessonsTab({ userProgress }) {
 
             <div className="p-6">
               <div className="grid gap-4">
-                {level.lessons.map((lesson, index) => {
+                {level.lessons.map((lesson, index) => { // index here is the 0-based array index
                   const lessonProgress = getProgressForLesson(lesson.id);
-                  const isUnlocked = isLessonUnlocked(level.level, index);
+                  // Use lesson.orderInLevel for isLessonUnlocked, which is 1-based
+                  const isUnlocked = isLessonUnlocked(level.level, lesson.orderInLevel);
                   const isCompleted = lessonProgress?.completed || false;
                   const score = lessonProgress?.quiz_score || 0;
 
                   return (
                     <div
                       key={lesson.id}
-                      className={`p-4 rounded-lg border-2 transition-all ${
+                      className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
                         isCompleted
-                          ? 'border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer'
+                          ? 'border-green-300 bg-green-50 hover:bg-green-100'
                           : isUnlocked
-                          ? 'border-blue-200 bg-blue-50 hover:bg-blue-100 cursor-pointer'
+                          ? 'border-blue-200 bg-blue-50 hover:bg-blue-100'
                           : 'border-gray-200 bg-gray-50 cursor-not-allowed'
                       }`}
                       onClick={() => {
@@ -175,7 +210,7 @@ export default function LessonsTab({ userProgress }) {
                             <h3 className={`font-semibold ${
                               isUnlocked ? 'text-gray-900' : 'text-gray-500'
                             }`}>
-                              {lesson.title}
+                              {lesson.title} {/* Lesson titles are still hardcoded in LESSON_STRUCTURE as per prompt */}
                             </h3>
                             <div className="flex items-center space-x-4 text-sm">
                               <span className={`flex items-center ${
@@ -186,12 +221,12 @@ export default function LessonsTab({ userProgress }) {
                               </span>
                               {isCompleted && (
                                 <span className="text-green-600 font-medium">
-                                  Score: {score}%
+                                  {t('lessons.status.score', { score })}
                                 </span>
                               )}
                               {!isUnlocked && (
                                 <span className="text-gray-400 text-xs">
-                                  Complete previous lesson to unlock
+                                  {t('lessons.status.locked')}
                                 </span>
                               )}
                             </div>
@@ -200,7 +235,7 @@ export default function LessonsTab({ userProgress }) {
 
                         {isCompleted && (
                           <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                            Completed
+                            {t('lessons.status.completed')}
                           </div>
                         )}
                       </div>

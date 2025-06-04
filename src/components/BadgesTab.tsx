@@ -1,5 +1,6 @@
 import React from 'react';
 import { Award, Lock } from 'lucide-react';
+import { useTranslation } from '../contexts/LanguageContext'; // Corrected path
 
 const ALL_BADGES = [
   { name: "First Contact", xp: 10, level: 1 },
@@ -22,20 +23,36 @@ const ALL_BADGES = [
   { name: "SrCode Approved", xp: 200, level: 6 }
 ];
 
-export default function BadgesTab({ userBadges }) {
+interface UserBadgeItem { // Renamed for clarity, assuming structure from Dashboard
+  badge_name: string;
+  earned_at: string; // Assuming ISO date string
+  // lesson_id?: string; // If badges are tied to lessons
+  // badge_xp?: number; // XP might be from ALL_BADGES
+}
+
+interface BadgesTabProps {
+  userBadges: UserBadgeItem[];
+  onBadgeUpdate?: () => void; // Kept as per plan, though not used in this snippet
+}
+
+export default function BadgesTab({ userBadges, onBadgeUpdate }: BadgesTabProps) {
+  const { t } = useTranslation();
   const earnedBadgeNames = userBadges.map(badge => badge.badge_name);
 
   return (
     <div className="space-y-8">
       <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-6 text-white">
-        <h2 className="text-2xl font-bold mb-2">Badge Collection</h2>
+        <h2 className="text-2xl font-bold mb-2">{t('badges.title')}</h2>
         <p className="text-purple-100">
-          {earnedBadgeNames.length} of {ALL_BADGES.length} badges earned
+          {t('badges.earned', {
+            earned: userBadges.length,
+            total: ALL_BADGES.length
+          })}
         </p>
         <div className="mt-4 bg-white bg-opacity-20 rounded-full h-4">
           <div
             className="bg-white rounded-full h-4 transition-all duration-500"
-            style={{ width: `${(earnedBadgeNames.length / ALL_BADGES.length) * 100}%` }}
+            style={{ width: `${userBadges.length > 0 ? (userBadges.length / ALL_BADGES.length) * 100 : 0}%` }} // Added check for userBadges.length > 0
           ></div>
         </div>
       </div>
@@ -68,24 +85,27 @@ export default function BadgesTab({ userBadges }) {
                 <h3 className={`font-bold text-lg mb-2 ${
                   isEarned ? 'text-yellow-800' : 'text-gray-500'
                 }`}>
-                  {badge.name}
+                  {badge.name} {/* Badge name remains hardcoded as per prompt's example */}
                 </h3>
 
                 <div className={`text-sm mb-2 ${
                   isEarned ? 'text-yellow-700' : 'text-gray-400'
                 }`}>
-                  Level {badge.level} • {badge.xp} XP
+                  {/* Re-using lessons.level translation key, or create a specific badges.level key if preferred */}
+                  {t('lessons.level', { level: badge.level })} • {badge.xp} XP
                 </div>
 
                 {isEarned && earnedBadge && (
                   <div className="text-xs text-yellow-600">
-                    Earned {new Date(earnedBadge.earned_at).toLocaleDateString()}
+                    {t('badges.earnedOn', {
+                      date: new Date(earnedBadge.earned_at).toLocaleDateString()
+                    })}
                   </div>
                 )}
 
                 {!isEarned && (
                   <div className="text-xs text-gray-400">
-                    Complete Level {badge.level} lessons to unlock
+                    {t('badges.unlockHint', { level: badge.level })}
                   </div>
                 )}
               </div>
