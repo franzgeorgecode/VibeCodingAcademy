@@ -11,70 +11,100 @@ import SrCodeAvatar from '../components/srcode/SrCodeAvatar';
 import LessonCard from '../components/lessons/LessonCard';
 import BadgeCard from '../components/gamification/BadgeCard';
 
-// Complete lesson data
+// Complete lesson data based on the structured learning path
 const lessons = [
   {
-    id: 'lesson-1',
-    title: 'What is bolt.new?',
-    description: 'Learn the fundamentals of bolt.new as an AI web development agent',
+    id: 'lesson-1-1',
+    title: 'What the Hell is bolt.new?',
+    description: 'Understand bolt.new as an AI web development agent and its capabilities',
     level: 1,
     xpReward: 10,
     duration: '15 min',
     isLocked: false
   },
   {
-    id: 'lesson-2',
+    id: 'lesson-1-2',
     title: 'The Art of the Perfect Prompt',
     description: 'Master the craft of writing effective prompts for bolt.new',
     level: 1,
     xpReward: 15,
     duration: '20 min',
     isLocked: false,
-    requiredLessonId: 'lesson-1'
+    requiredLessonId: 'lesson-1-1'
   },
   {
-    id: 'lesson-3',
-    title: 'WebContainers: The Magic Behind the Scenes',
+    id: 'lesson-1-3',
+    title: 'WebContainers: The Magic Behind the Curtain',
     description: 'Deep dive into StackBlitz WebContainers and their capabilities',
     level: 1,
     xpReward: 20,
     duration: '25 min',
     isLocked: false,
-    requiredLessonId: 'lesson-2'
+    requiredLessonId: 'lesson-1-2'
   },
   {
-    id: 'lesson-4',
-    title: 'Building Your First Project',
-    description: 'Create your first complete web application with bolt.new',
+    id: 'lesson-2-1',
+    title: 'Connecting Supabase Like a Pro',
+    description: 'Set up and integrate Supabase in your bolt.new projects',
     level: 2,
     xpReward: 25,
     duration: '30 min',
     isLocked: false,
-    requiredLessonId: 'lesson-3'
+    requiredLessonId: 'lesson-1-3'
   },
   {
-    id: 'lesson-5',
-    title: 'Mastering Database Integration',
-    description: 'Learn to integrate Supabase with your bolt.new projects',
+    id: 'lesson-2-2',
+    title: 'Database Schemas: Your New Best Friend',
+    description: 'Design effective database schemas for your applications',
     level: 2,
     xpReward: 30,
     duration: '35 min',
     isLocked: false,
-    requiredLessonId: 'lesson-4'
+    requiredLessonId: 'lesson-2-1'
   },
   {
-    id: 'lesson-6',
-    title: 'Advanced UI Development',
-    description: 'Create beautiful and responsive user interfaces',
+    id: 'lesson-2-3',
+    title: 'Edge Functions: Unlimited Power',
+    description: 'Create and manage Edge Functions for serverless operations',
     level: 2,
-    xpReward: 35,
+    xpReward: 40,
     duration: '40 min',
     isLocked: false,
-    requiredLessonId: 'lesson-5'
+    requiredLessonId: 'lesson-2-2'
+  },
+  {
+    id: 'lesson-3-1',
+    title: 'Auth Basics: Who Are You',
+    description: 'Implement secure authentication in your applications',
+    level: 3,
+    xpReward: 35,
+    duration: '30 min',
+    isLocked: false,
+    requiredLessonId: 'lesson-2-3'
+  },
+  {
+    id: 'lesson-3-2',
+    title: 'Protecting Routes Like Fort Knox',
+    description: 'Master middleware and route protection techniques',
+    level: 3,
+    xpReward: 45,
+    duration: '35 min',
+    isLocked: false,
+    requiredLessonId: 'lesson-3-1'
+  },
+  {
+    id: 'lesson-3-3',
+    title: 'Social Auth: The Easy Way',
+    description: 'Integrate multiple authentication providers',
+    level: 3,
+    xpReward: 50,
+    duration: '40 min',
+    isLocked: false,
+    requiredLessonId: 'lesson-3-2'
   }
 ];
 
-// Available badges
+// Available badges based on the learning path
 const availableBadges = [
   {
     id: 'first-steps',
@@ -85,44 +115,44 @@ const availableBadges = [
     xpReward: 10
   },
   {
-    id: 'quick-learner',
-    name: 'Quick Learner',
-    description: 'Complete a lesson without using hints',
-    icon: '🚀',
+    id: 'ai-whisperer',
+    name: 'AI Whisperer',
+    description: 'Create your first perfect prompt',
+    icon: '🗣️',
     rarity: 'rare',
     xpReward: 20
   },
   {
-    id: 'streak-master',
-    name: 'Streak Master',
-    description: 'Maintain a 7-day learning streak',
-    icon: '🔥',
-    rarity: 'epic',
-    xpReward: 30
-  },
-  {
-    id: 'code-wizard',
-    name: 'Code Wizard',
-    description: 'Complete all basic lessons',
-    icon: '🧙‍♂️',
-    rarity: 'legendary',
-    xpReward: 50
-  },
-  {
-    id: 'bug-hunter',
-    name: 'Bug Hunter',
-    description: 'Help identify and fix a bug',
-    icon: '🐛',
+    id: 'tech-detective',
+    name: 'Tech Detective',
+    description: 'Master WebContainers concepts',
+    icon: '🔍',
     rarity: 'rare',
     xpReward: 25
   },
   {
-    id: 'team-player',
-    name: 'Team Player',
-    description: 'Help another student in the community',
-    icon: '🤝',
+    id: 'supreme-connector',
+    name: 'Supreme Connector',
+    description: 'Successfully integrate Supabase',
+    icon: '🔌',
+    rarity: 'epic',
+    xpReward: 30
+  },
+  {
+    id: 'data-architect',
+    name: 'Data Architect',
+    description: 'Design your first database schema',
+    icon: '📊',
     rarity: 'epic',
     xpReward: 35
+  },
+  {
+    id: 'edge-lord',
+    name: 'Edge Lord',
+    description: 'Create your first Edge Function',
+    icon: '⚡',
+    rarity: 'legendary',
+    xpReward: 40
   }
 ];
 
@@ -130,7 +160,6 @@ const Dashboard = () => {
   const { xp, level, streak, badges, completedLessons, incrementStreak } = useUserProgressStore();
   const { addSrCodeMessage, setTyping, mood } = useSrCodeStore();
   
-  // Track daily streak and show welcome message
   useEffect(() => {
     setTyping(true);
     
