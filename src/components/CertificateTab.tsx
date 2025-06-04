@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download, Award, Calendar } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext'; // Corrected path
+import { useAuthStore } from '@/stores/authStore'; // Import useAuthStore
 import jsPDF from 'jspdf';
 
 interface CertificateTabProps {
@@ -15,10 +16,14 @@ export default function CertificateTab({
   onCertificateGenerate
 }: CertificateTabProps) {
   const { t } = useTranslation();
+  const { user } = useAuthStore(); // Get user from store
   const isEligible = completedLessons === 18; // Assuming 18 lessons total for eligibility
 
-  // In a real app, studentName would come from user context or props
-  const studentName = t('certificate.studentNamePlaceholder', '[Student Name]');
+  // Construct studentName from user metadata
+  const fullName = [user?.user_metadata?.first_name, user?.user_metadata?.last_name]
+    .filter(Boolean) // Remove any null or empty strings
+    .join(' ');
+  const studentName = fullName || t('certificate.studentNamePlaceholder', '[Student Name]');
 
 
   const generatePDF = async () => {

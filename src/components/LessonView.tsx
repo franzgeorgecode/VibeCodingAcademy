@@ -29,29 +29,50 @@ interface UserBadge {
 export default function LessonView() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation(); // i18n instance for exists check
   const [showQuiz, setShowQuiz] = useState(false);
   const [lessonCompleted, setLessonCompleted] = useState(false);
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const currentLesson = lessonId ? lessonsData[lessonId] : null;
+  const currentLesson = lessonId ? lessonsData[lessonId] : null; // Still needed for structure, badgeXp, etc.
+
+  // Translated values (to avoid repeated t() calls in render)
+  const [translatedLesson, setTranslatedLesson] = useState<any>(null);
 
   useEffect(() => {
-    if (!currentLesson) {
-      console.warn(`LessonView: Lesson with ID "${lessonId}" not found in lessonsData. Redirecting to dashboard.`);
+    if (!lessonId || !currentLesson) {
+      console.warn(`LessonView: Lesson with ID "${lessonId}" not found. Redirecting to dashboard.`);
       navigate('/dashboard');
       return;
     }
     checkUserProgress();
-  }, [lessonId, navigate]);
+
+    // Set translated content
+    const learningObjectivesArray = currentLesson.learningObjectives.map((_, index) =>
+      t(`lessons.${lessonId}.learningObjectives.${index}`, { defaultValue: currentLesson.learningObjectives[index] })
+    );
+
+    setTranslatedLesson({
+      title: t(`lessons.${lessonId}.title`, { defaultValue: currentLesson.title }),
+      objective: t(`lessons.${lessonId}.objective`, { defaultValue: currentLesson.objective }),
+      content: t(`lessons.${lessonId}.content`, { defaultValue: currentLesson.content }),
+      learningObjectives: learningObjectivesArray,
+      badgeName: t(`lessons.${lessonId}.badgeName`, { defaultValue: currentLesson.badgeName }),
+      srcodeCommentary: t(`lessons.${lessonId}.srcodeCommentary`, { defaultValue: currentLesson.srcodeCommentary }),
+      practiceDescription: currentLesson.practiceDescription ? t(`lessons.${lessonId}.practiceDescription`, { defaultValue: currentLesson.practiceDescription }) : undefined,
+    });
+
+  }, [lessonId, navigate, t, currentLesson]); // Added t and currentLesson to dependencies
 
   const checkUserProgress = async () => {
-    if (!lessonId || !currentLesson) {
-        console.warn("LessonView: checkUserProgress called without valid lessonId or currentLesson.");
+    if (!lessonId || !currentLesson) { // currentLesson check is important here
+        console.warn("LessonView: checkUserProgress called without valid lessonId or currentLesson structure.");
         return;
     }
-    console.log(`Checking user progress for lesson: ${currentLesson.id} (${currentLesson.title})`);
+    // Use translated title for logging if available, otherwise fallback
+    const titleForLog = translatedLesson?.title || currentLesson.title;
+    console.log(`Checking user progress for lesson: ${currentLesson.id} (${titleForLog})`);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -95,8 +116,8 @@ export default function LessonView() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !currentLesson) {
-        console.error('Missing user or lesson data for markLessonComplete.');
+      if (!user || !currentLesson || !translatedLesson) {
+        console.error('Missing user, lesson structure, or translated lesson data for markLessonComplete.');
         alert(t('common.error') + ': ' + 'User or lesson data is missing. Cannot save progress.');
         return;
       }
@@ -105,11 +126,11 @@ export default function LessonView() {
 
       console.log('Lesson completion data determination:', {
         userId: user.id,
-        lessonId: currentLesson.id,
+        lessonId: currentLesson.id, // Use ID from original structure
         score: quizScore,
         isCompleted,
-        badgeName: currentLesson.badgeName,
-        badgeXP: currentLesson.badgeXp,
+        badgeName: translatedLesson.badgeName, // Use translated
+        badgeXP: currentLesson.badgeXp, // XP comes from original structure
         currentAttempts: userProgress?.quiz_attempts || 0,
         previousCompletedStatus: userProgress?.completed,
         previousScore: userProgress?.quiz_score
@@ -146,12 +167,12 @@ export default function LessonView() {
       }
 
       if (isCompleted) {
-        console.log('Lesson completed, attempting to award badge:', {badgeName: currentLesson.badgeName, badgeXP: currentLesson.badgeXp });
+        console.log('Lesson completed, attempting to award badge:', {badgeName: translatedLesson.badgeName, badgeXP: currentLesson.badgeXp });
         const badgeUpsertData: UserBadge = {
             user_id: user.id,
-            lesson_id: currentLesson.id,
-            badge_name: currentLesson.badgeName,
-            badge_xp: currentLesson.badgeXp,
+            lesson_id: currentLesson.id, // ID from original structure
+            badge_name: translatedLesson.badgeName, // Use translated
+            badge_xp: currentLesson.badgeXp, // XP from original structure
             earned_at: new Date().toISOString()
         };
         const { data: badgeDataArray, error: badgeError } = await supabase
@@ -172,12 +193,17 @@ export default function LessonView() {
         console.log('Next lesson ID determined:', nextLessonId);
 
         if (nextLessonId) {
-          const nextLessonData = lessonsData[nextLessonId];
-          const nextLessonTitle = nextLessonData ? nextLessonData.title : t('lessons.nextLessonDefaultTitle', 'the next lesson');
+          const nextLessonOriginalData = lessonsData[nextLessonId];
+          // Get translated title for the next lesson for the confirmation dialog
+          const nextLessonTitle = nextLessonOriginalData
+            ? t(`lessons.${nextLessonId}.title`, { defaultValue: nextLessonOriginalData.title })
+            : t('lessons.nextLessonDefaultTitle', 'the next lesson');
+
+          const currentLessonTranslatedTitle = translatedLesson.title;
 
           setTimeout(() => {
             const continueMessage = t('lessons.continueNext', {
-                currentLessonTitle: currentLesson.title,
+                currentLessonTitle: currentLessonTranslatedTitle,
                 nextLessonTitle: nextLessonTitle
             });
             if (confirm(continueMessage)) {
@@ -253,7 +279,7 @@ export default function LessonView() {
       });
   };
 
-  if (!currentLesson) {
+  if (!currentLesson || !translatedLesson) { // Check for translatedLesson as well
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center">
@@ -273,7 +299,8 @@ export default function LessonView() {
   if (showQuiz) {
     return (
       <Quiz
-        lesson={currentLesson}
+        lessonId={currentLesson.id} // Pass lessonId to Quiz
+        // lesson={currentLesson} // Keep passing if Quiz uses other non-translated parts of lesson
         onComplete={markLessonComplete}
         onBack={() => setShowQuiz(false)}
       />
@@ -306,17 +333,17 @@ export default function LessonView() {
               {t('lessons.level', { level: currentLesson.level })} • {t('lessons.lesson', { level: currentLesson.level, order: currentLesson.orderInLevel })}
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-3">
-              {currentLesson.title}
+              {translatedLesson.title}
             </h1>
             <p className="text-lg text-gray-600">
-              {currentLesson.objective}
+              {translatedLesson.objective}
             </p>
           </div>
 
           <div className="text-right flex-shrink-0 ml-4">
-            {currentLesson.badgeName && (
+            {translatedLesson.badgeName && (
               <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                {currentLesson.badgeName}
+                {translatedLesson.badgeName}
               </div>
             )}
             {typeof currentLesson.badgeXp === 'number' && (
@@ -330,16 +357,17 @@ export default function LessonView() {
          <div className="flex items-center space-x-4 text-sm text-gray-500 border-t pt-4">
               <div className="flex items-center">
                 <BookOpen className="h-4 w-4 mr-1" />
-                 {t('lessons.readingTime', { minutes: currentLesson.readingTime || '10-15' })}
+                 {/* Reading time might not be in lessonsData, if so, use fallback or add to translations */}
+                 {t('lessons.readingTime', { minutes: currentLesson.readingTime || t(`lessons.${lessonId}.readingTime`, {defaultValue: '10-15'}) })}
               </div>
         </div>
       </div>
 
-      {currentLesson.learningObjectives && currentLesson.learningObjectives.length > 0 && (
+      {translatedLesson.learningObjectives && translatedLesson.learningObjectives.length > 0 && (
         <div className="bg-blue-50 rounded-lg p-6 mb-6 border border-blue-200">
           <h2 className="text-xl font-semibold text-blue-900 mb-3">{t('lessons.learningObjectives')}</h2>
           <ul className="space-y-2">
-            {currentLesson.learningObjectives.map((objective, index) => (
+            {translatedLesson.learningObjectives.map((objective: string, index: number) => (
               <li key={index} className="flex items-start text-blue-800">
                 <div className="h-2 w-2 bg-blue-600 rounded-full mt-[0.4rem] mr-3 flex-shrink-0"></div>
                 {objective}
@@ -350,10 +378,10 @@ export default function LessonView() {
       )}
 
       <article className="bg-white rounded-lg shadow-lg p-8 mb-6 prose max-w-none prose-headings:text-gray-800 prose-p:text-gray-700 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl">
-        {renderContent(currentLesson.content)}
+        {renderContent(translatedLesson.content)}
       </article>
 
-      {currentLesson.srcodeCommentary && (
+      {translatedLesson.srcodeCommentary && (
         <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg p-6 mb-6 border border-purple-200">
           <div className="flex items-start">
             <div className="bg-purple-600 text-white rounded-full w-10 h-10 font-bold flex items-center justify-center mr-4 flex-shrink-0 text-lg">
@@ -361,16 +389,16 @@ export default function LessonView() {
             </div>
             <div>
               <h3 className="font-semibold text-purple-900 mb-1">{t('lessons.srCodeSays')}</h3>
-              <p className="text-purple-800 italic leading-relaxed">{currentLesson.srcodeCommentary}</p>
+              <p className="text-purple-800 italic leading-relaxed">{translatedLesson.srcodeCommentary}</p>
             </div>
           </div>
         </div>
       )}
 
-      {currentLesson.practiceDescription && (
+      {translatedLesson.practiceDescription && (
         <div className="bg-green-50 rounded-lg p-6 mb-6 border border-green-200">
           <h2 className="text-xl font-semibold text-green-900 mb-3">{t('lessons.practiceExercise')}</h2>
-          <p className="text-green-800 leading-relaxed">{currentLesson.practiceDescription}</p>
+          <p className="text-green-800 leading-relaxed">{translatedLesson.practiceDescription}</p>
         </div>
       )}
 
@@ -393,12 +421,12 @@ export default function LessonView() {
         </button>
       </div>
 
-      {currentLesson && (
+      {currentLesson && translatedLesson && ( // Ensure translatedLesson exists before rendering SrCodeChat
         <SrCodeChat
-          lessonContext={{
+          lessonContext={{ // Pass original IDs and level, but translated title and objective
             id: currentLesson.id,
-            title: currentLesson.title,
-            objective: currentLesson.objective,
+            title: translatedLesson.title,
+            objective: translatedLesson.objective,
             level: currentLesson.level
           }}
           isOpen={isChatOpen}
