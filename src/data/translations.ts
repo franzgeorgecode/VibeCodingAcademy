@@ -13,7 +13,20 @@ export const translations = {
       previous: 'Previous',
       continue: 'Continue',
       finish: 'Finish',
-      retry: 'Retry'
+      retry: 'Retry',
+      saving: 'Saving...'
+    },
+    profile: {
+      title: "User Profile",
+      firstNameLabel: "First Name",
+      lastNameLabel: "Last Name",
+      saveButton: "Save Changes",
+      errorNoUser: "User not found. Profile cannot be loaded.",
+      errorFetching: "Error fetching profile: ",
+      errorNoUserSaving: "User not found. Cannot save profile.",
+      saveSuccess: "Profile saved successfully!",
+      errorSaving: "Error saving profile: ",
+      errorLogout: "Logout failed: "
     },
     navigation: {
       home: 'Home',
@@ -1216,7 +1229,20 @@ export const translations = {
       previous: 'Anterior',
       continue: 'Continuar',
       finish: 'Finalizar',
-      retry: 'Reintentar'
+      retry: 'Reintentar',
+      saving: 'Guardando...'
+    },
+    profile: {
+      title: "Perfil de Usuario",
+      firstNameLabel: "Nombre",
+      lastNameLabel: "Apellido",
+      saveButton: "Guardar Cambios",
+      errorNoUser: "Usuario no encontrado. No se puede cargar el perfil.",
+      errorFetching: "Error al cargar el perfil: ",
+      errorNoUserSaving: "Usuario no encontrado. No se puede guardar el perfil.",
+      saveSuccess: "¡Perfil guardado exitosamente!",
+      errorSaving: "Error al guardar el perfil: ",
+      errorLogout: "Falló el cierre de sesión: "
     },
     navigation: {
       home: 'Inicio',
