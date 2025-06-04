@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Award, User } from 'lucide-react'; // Removed Download, not used here
+import { BookOpen, Award, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useTranslation } from '../contexts/LanguageContext'; // Added
+import { useTranslation } from '../contexts/LanguageContext';
+import { lessonsData } from '../data/lessonsData';
+import { useAuthStore } from '@/stores/authStore'; // Import useAuthStore
 import LessonsTab from './LessonsTab';
 import BadgesTab from './BadgesTab';
 import CertificateTab from './CertificateTab';
@@ -24,44 +26,66 @@ export default function Dashboard() {
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null); // Added
+  const [localUser, setLocalUser] = useState<any>(null); // Renamed to avoid conflict with authStore user
+
+  // Get user from authStore for welcome message reactivity
+  const { user: authUser } = useAuthStore();
 
   useEffect(() => {
     fetchUserData();
 
     // Listener for manual updates (e.g., from LessonView)
-    const handleProgressUpdate = () => {
-      console.log('Progress update event received, refreshing data...');
+    const handleProgressUpdate = (event?: CustomEvent) => {
+      console.log('[Dashboard] Event: progressUpdated received.', event?.detail);
       fetchUserData();
     };
-    window.addEventListener('progressUpdated', handleProgressUpdate);
+    window.addEventListener('progressUpdated', handleProgressUpdate as EventListener);
 
-    // Suscripciones a cambios en tiempo real
+    // Supabase Real-time Subscriptions
+    console.log('[Dashboard] Setting up Supabase real-time subscriptions.');
     const progressSubscription = supabase
-      .channel('user_progress_changes')
+      .channel('dashboard-user-progress') // Unique channel name for dashboard
       .on('postgres_changes', {
-        event: '*',
+        event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
         schema: 'public',
-        table: 'user_progress'
+        table: 'user_progress',
+        // filter: `user_id=eq.${user?.id}` // Ensure this filter is applied if user is available
       }, (payload) => {
-        console.log('Real-time progress change:', payload);
-        fetchUserData(); // Refrescar datos cuando cambie el progreso
+        console.log('[Dashboard] Real-time: user_progress change detected.', payload);
+        fetchUserData();
       })
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[Dashboard] Real-time: Successfully subscribed to user_progress changes.');
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('[Dashboard] Real-time: user_progress subscription error.', err);
+        }
+      });
 
     const badgesSubscription = supabase
-      .channel('user_badges_changes')
+      .channel('dashboard-user-badges') // Unique channel name
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'user_badges'
+        table: 'user_badges',
+        // filter: `user_id=eq.${user?.id}`
       }, (payload) => {
-        console.log('Real-time badge change:', payload);
-        fetchUserData(); // Refrescar datos cuando cambien los badges
+        console.log('[Dashboard] Real-time: user_badges change detected.', payload);
+        fetchUserData();
       })
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[Dashboard] Real-time: Successfully subscribed to user_badges changes.');
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('[Dashboard] Real-time: user_badges subscription error.', err);
+        }
+      });
 
+    // Cleanup function
     return () => {
+      console.log('[Dashboard] Cleaning up real-time subscriptions and event listener.');
       window.removeEventListener('progressUpdated', handleProgressUpdate);
       progressSubscription.unsubscribe();
       badgesSubscription.unsubscribe();
@@ -69,64 +93,92 @@ export default function Dashboard() {
   }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
 
   const fetchUserData = async () => {
-    // setLoading(true); // Optionally reset loading state if preferred UX
+    console.log('[Dashboard] fetchUserData: Initiating data fetch.');
+    // setLoading(true); // Consider if re-enabling this provides better UX for manual refreshes
     try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        console.error('[Dashboard] fetchUserData: Error fetching user.', userError);
+        setLoading(false);
+        return;
+      }
       if (!currentUser) {
-        setLoading(false); // Ensure loading is false if no user
+        console.log('[Dashboard] fetchUserData: No current user found.');
+        setLoading(false);
+        // Potentially clear user-specific state if a user was previously logged in
+        setLocalUser(null); // Use setLocalUser
+        setUserProgress([]);
+        setUserBadges([]);
         return;
       }
 
-      setUser(currentUser); // Set user state
+      console.log('[Dashboard] fetchUserData: User found:', currentUser.email);
+      setLocalUser(currentUser); // Use setLocalUser
 
-      // Fetch user progress con manejo de errores mejorado
+      // Fetch user progress
       const { data: progress, error: progressError } = await supabase
         .from('user_progress')
-        .select('*')
+        .select('lesson_id, completed, quiz_score') // Select only necessary fields
         .eq('user_id', currentUser.id);
 
       if (progressError) {
-        console.error('Error fetching progress:', progressError);
+        console.error('[Dashboard] fetchUserData: Error fetching user_progress.', progressError);
+        // Don't return, try to fetch badges anyway, or handle more gracefully
+      } else {
+        console.log('[Dashboard] fetchUserData: User progress data received:', progress);
+        setUserProgress(progress || []);
       }
 
-      // Fetch user badges con manejo de errores mejorado
+      // Fetch user badges
       const { data: badges, error: badgesError } = await supabase
         .from('user_badges')
-        .select('*')
+        .select('badge_name, badge_xp, earned_at') // Select only necessary fields
         .eq('user_id', currentUser.id)
         .order('earned_at', { ascending: false });
 
       if (badgesError) {
-        console.error('Error fetching badges:', badgesError);
+        console.error('[Dashboard] fetchUserData: Error fetching user_badges.', badgesError);
+      } else {
+        console.log('[Dashboard] fetchUserData: User badges data received:', badges);
+        setUserBadges(badges || []);
       }
 
-      setUserProgress(progress || []);
-      setUserBadges(badges || []);
+      // Log calculated values
+      const calculatedTotalXP = (badges || []).reduce((sum, badge) => sum + (badge.badge_xp || 0), 0);
+      const calculatedCompletedLessons = (progress || []).filter(p => p.completed).length;
+      const totalLessons = Object.keys(lessonsData).length;
+      const calculatedProgressPercentage = totalLessons > 0 ? Math.round((calculatedCompletedLessons / totalLessons) * 100) : 0;
 
-      console.log('Dashboard data updated:', {
-        user: currentUser.email,
-        progress: progress?.length || 0,
-        badges: badges?.length || 0,
-        totalXP: (badges || []).reduce((sum: number, badge: any) => sum + badge.badge_xp, 0)
+      console.log('[Dashboard] fetchUserData: Calculated stats:', {
+        userEmail: currentUser.email,
+        completedLessons: calculatedCompletedLessons,
+        totalXP: calculatedTotalXP,
+        badgesEarned: (badges || []).length,
+        progressPercentage: calculatedProgressPercentage,
       });
 
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('[Dashboard] fetchUserData: Unexpected error during data fetching.', error);
     } finally {
       setLoading(false);
+      console.log('[Dashboard] fetchUserData: Data fetching process complete.');
     }
   };
 
   // Función para refrescar manualmente (llamada desde tabs)
   const refreshData = () => {
+    console.log('[Dashboard] refreshData: Manual refresh triggered.');
     fetchUserData();
   };
 
-  const totalXP = userBadges.reduce((sum, badge) => sum + badge.badge_xp, 0);
+  const totalLessonsCount = Object.keys(lessonsData).length;
+  const totalXP = userBadges.reduce((sum, badge) => sum + (badge.badge_xp || 0), 0); // Ensure badge_xp is a number
   const completedLessons = userProgress.filter(p => p.completed).length;
-  const progressPercentage = Math.round((completedLessons / 18) * 100); // Assuming 18 total lessons
+  const progressPercentage = totalLessonsCount > 0 ? Math.round((completedLessons / totalLessonsCount) * 100) : 0;
 
   if (loading) {
+    console.log('[Dashboard] Render: Displaying loading indicator.');
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -140,7 +192,7 @@ export default function Dashboard() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           {t('dashboard.welcomeBack', {
-            name: user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'Student'
+            name: authUser?.user_metadata?.first_name || authUser?.email?.split('@')[0] || localUser?.user_metadata?.first_name || localUser?.email?.split('@')[0] || 'Student'
           })}
         </h1>
         <p className="text-gray-600">{t('dashboard.title')}</p>
@@ -156,7 +208,7 @@ export default function Dashboard() {
                 {t('dashboard.stats.completedLessons')}
               </p>
               <p className="text-2xl font-bold text-gray-900">
-                {completedLessons}/18
+                {completedLessons}/{totalLessonsCount}
               </p>
             </div>
           </div>
