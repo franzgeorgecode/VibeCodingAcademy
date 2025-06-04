@@ -1,0 +1,9 @@
+{
+  "greeting": "Hola",
+  "dashboardTitle": "Tablero",
+  "loginTitle": "Iniciar Sesión",
+  "emailLabel": "Correo Electrónico",
+  "passwordLabel": "Contraseña",
+  "loginButton": "Iniciar Sesión",
+  "loggingInButton": "Iniciando Sesión..."
+}

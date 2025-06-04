@@ -1,0 +1,9 @@
+{
+  "greeting": "Hello",
+  "dashboardTitle": "Dashboard",
+  "loginTitle": "Login",
+  "emailLabel": "Email",
+  "passwordLabel": "Password",
+  "loginButton": "Login",
+  "loggingInButton": "Logging in..."
+}

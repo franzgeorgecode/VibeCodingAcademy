@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, Award, Download, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import LessonsTab from './LessonsTab';
@@ -18,6 +19,7 @@ interface UserBadge {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('lessons');
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
@@ -61,6 +63,7 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">{t('dashboardTitle')}</h1>
       {/* Header Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow p-6">
