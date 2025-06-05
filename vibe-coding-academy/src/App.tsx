@@ -1,61 +1,89 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useUserStore } from './store/userStore';
-import { checkUserSession } from './services/auth';
+import { checkUserSession, signOut } from './services/auth'; // Importar signOut
 import AuthPage from './pages/AuthPage';
 import DashboardLayout from './layout/DashboardLayout';
-import LandingPage from './pages/LandingPage'; // Import LandingPage
-import ProtectedRoute from './components/ProtectedRoute'; // Import ProtectedRoute
+import LandingPage from './pages/LandingPage';
+import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
 
-// Example Dashboard Home Content (can be moved to its own file later)
-const DashboardHomePage: React.FC = () => (
-  <div>
-    <h1 className="text-3xl font-bold text-purple-400">Bienvenido al Dashboard!</h1>
-    <p className="mt-4 text-gray-300">Aquí comenzarás tu aventura con SrCode.</p>
-    <p className="mt-2 text-sm text-gray-500">Este es el contenido principal del dashboard.</p>
-  </div>
-);
+// Contenido de ejemplo para la página de inicio del Dashboard
+const DashboardHomePage: React.FC = () => {
+  const { user } = useUserStore();
+  
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-purple-400">¡Bienvenido al Dashboard, {user?.email}!</h1>
+        <button 
+          onClick={async () => {
+            await signOut();
+            // ProtectedRoute se encargará de la redirección a /auth después del signOut
+          }} 
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
+        >
+          Cerrar Sesión
+        </button>
+      </div>
+      <p className="mt-4 text-gray-300">Aquí comenzarás tu aventura épica con SrCode para dominar la programación.</p>
+      <p className="mt-2 text-sm text-gray-500">Explora las lecciones, interactúa con SrCode y desbloquea tus superpoderes de codificación.</p>
+    </div>
+  );
+};
 
 function App() {
   const { user, isLoading, setIsLoading } = useUserStore();
 
   useEffect(() => {
+    // Lógica para verificar la sesión del usuario al cargar la app
     if (isLoading && !user) {
-        checkUserSession();
-    } else if (user && isLoading) {
+        checkUserSession(); // Llama a checkUserSession si está cargando y no hay usuario
+    } else if (isLoading && user) {
+        // Si hay usuario y sigue cargando, la sesión ya se resolvió, así que no estamos cargando más.
         setIsLoading(false);
-    } else if (!user && isLoading) {
+    } else if (isLoading && !user) {
+        // Si no hay usuario y sigue cargando, la sesión se resolvió como "no autenticado".
         setIsLoading(false);
     }
-  }, [user, isLoading, setIsLoading]);
-
-  // No need for the global isLoading check here anymore if ProtectedRoute handles its own.
-  // However, you might want a global loading screen before router is ready if checkUserSession is slow.
-  // For this iteration, ProtectedRoute's loading is fine.
+  }, [user, isLoading, setIsLoading]); // Dependencias del useEffect
 
   return (
     <Router>
       <div className="App">
         <Routes>
+          {/* Ruta para la Landing Page (pública) */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/auth" element={user && !isLoading ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
-
-          {/* Protected Routes */}
+          
+          {/* Ruta para Autenticación (pública, pero redirige si ya está logueado) */}
+          <Route 
+            path="/auth" 
+            element={user && !isLoading ? <Navigate to="/dashboard" replace /> : <AuthPage />} 
+          />
+          
+          {/* Rutas Protegidas (requieren autenticación) */}
           <Route element={<ProtectedRoute />}>
-            <Route
-              path="/dashboard"
+            <Route 
+              path="/dashboard" 
               element={
                 <DashboardLayout>
                   <DashboardHomePage />
                 </DashboardLayout>
+              } 
+            />
+            {/* Puedes añadir más rutas protegidas aquí, por ejemplo:
+            <Route 
+              path="/dashboard/profile"
+              element={
+                <DashboardLayout>
+                  <ProfilePage /> 
+                </DashboardLayout>
               }
             />
-            {/* Add more protected dashboard routes here as children of DashboardLayout if needed */}
-            {/* e.g., <Route path="/dashboard/profile" element={<DashboardLayout><ProfilePage /></DashboardLayout>} /> */}
+            */}
           </Route>
-
-          {/* Fallback for unknown routes (optional) */}
+          
+          {/* Ruta Fallback: si no coincide ninguna ruta, redirige a la Landing Page */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
