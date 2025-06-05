@@ -30,3 +30,34 @@ export const SrCodePersonality = {
     helpOffer: "🤖 Mis poderes de IA detectan que podrías necesitar ayuda. ¿Qué tal si analizamos este código juntos?"
   }
 };
+
+// NEW: XP System Configuration
+export const XP_SYSTEM_SRCODE = {
+  completedLesson: 50,    // Example value, adjust as needed
+  perfectScore: 100,      // Example value
+  helpFromSrCode: 25,     // Example value (maybe for using a specific help command)
+  independentSolve: 150,  // Example value
+  dailyStreak: 25,        // Example value
+  weeklyChallenge: 200,   // Example value
+  srCodeApproval: 75,     // Example value (e.g., SrCode "likes" your solution)
+  codeOptimization: 100,  // XP for using the optimizer tool (if different from basic analysis)
+  bugHunting: 125,        // Example value (e.g., finding a bug in a challenge)
+  projectCompletion: 500, // Example value
+  interactionWithSrCode: 5, // Added this earlier for basic chat interaction
+  codeAnalysis: 25,       // XP for using the Code Analysis feature (set in previous step, ensure consistency or adjust)
+};
+
+// NEW: SrCode Themed Levels
+export const SRCODE_LEVELS: {
+  [key: number]: { xp: number; title: string; badge: string; power: string }
+} = {
+  1: { xp: 0, title: "Aprendiz de SrCode", badge: "🌱", power: "Sintaxis Básica" },
+  5: { xp: 1000, title: "Discípulo del Código", badge: "⚡", power: "Debug Vision" },
+  10: { xp: 3000, title: "Guerrero Digital", badge: "⚔️", power: "Logic Master" },
+  15: { xp: 6000, title: "Mago del Algoritmo", badge: "🔮", power: "Pattern Recognition" },
+  20: { xp: 10000, title: "Señor del Framework", badge: "👑", power: "Architecture Sight" },
+  25: { xp: 15000, title: "Maestro SrCode", badge: "🏆", power: "Full Stack Wisdom" },
+  30: { xp: 25000, title: "Leyenda Viviente", badge: "🌟", power: "AI Symbiosis" }
+  // Note: The prompt has level keys as numbers. TypeScript might prefer string keys for object literals
+  // if not explicitly typed, but the provided type { [key: number]: ... } should handle it.
+};
