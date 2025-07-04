@@ -1,7 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { supabase } from '../lib/supabase';
 
-const AuthContext = createContext({});
+interface AuthContextType {
+  user: any;
+  loading: boolean;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  signOut: async () => {},
+});
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -11,51 +22,57 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const { isSignedIn, isLoaded, signOut: clerkSignOut } = useAuth();
+  const { user: clerkUser } = useUser();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-      setLoading(false);
-    };
+    const syncUserWithSupabase = async () => {
+      if (isLoaded) {
+        if (isSignedIn && clerkUser) {
+          try {
+            // Sync user data with Supabase
+            const { data, error } = await supabase
+              .from('users')
+              .upsert({
+                id: clerkUser.id,
+                username: clerkUser.username || clerkUser.emailAddresses[0]?.emailAddress.split('@')[0],
+                avatar_url: clerkUser.imageUrl,
+                created_at: new Date(clerkUser.createdAt!).toISOString(),
+                total_xp: 0,
+                current_level: 1,
+                streak_days: 0,
+                last_activity: new Date().toISOString().split('T')[0]
+              }, { 
+                onConflict: 'id',
+                ignoreDuplicates: false 
+              })
+              .select()
+              .single();
 
-    getSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user || null);
+            if (error && error.code !== '23505') { // Ignore duplicate key errors
+              console.error('Error syncing user with Supabase:', error);
+            }
+          } catch (error) {
+            console.error('Error in user sync:', error);
+          }
+        }
         setLoading(false);
       }
-    );
+    };
 
-    return () => subscription.unsubscribe();
-  }, []);
+    syncUserWithSupabase();
+  }, [isSignedIn, isLoaded, clerkUser]);
+
+  const signOut = async () => {
+    await clerkSignOut();
+  };
 
   const value = {
-    user,
-    loading,
-    signUp: async (email, password, userData) => {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: userData }
-      });
-      return { data, error };
-    },
-    signIn: async (email, password) => {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      return { data, error };
-    },
-    signOut: async () => {
-      const { error } = await supabase.auth.signOut();
-      return { error };
-    }
+    user: clerkUser,
+    loading: loading || !isLoaded,
+    signOut,
   };
 
   return (

@@ -1,26 +1,31 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // Navigate removed as it's not used in the new version directly here
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
-// import Login from './components/Login'; // Old Login component, replaced by AuthPage
 import Dashboard from './components/Dashboard';
 import LessonView from './components/LessonView';
 import ProtectedRoute from './components/ProtectedRoute';
-
-// New imports
 import LandingPage from './components/LandingPage';
 import AuthPage from './components/AuthPage';
+import LoadingScreen from './components/ui/LoadingScreen';
 
 function App() {
+  const { isLoaded } = useAuth();
+
+  // Show loading screen while Clerk is initializing
+  if (!isLoaded) {
+    return <LoadingScreen />;
+  }
+
   return (
     <LanguageProvider>
       <AuthProvider>
         <Router>
-          <div className="min-h-screen bg-gray-50"> {/* Assuming this wrapper is desired, or can be adjusted */}
+          <div className="min-h-screen bg-gray-50">
             <Routes>
               <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<AuthPage />} />
-              <Route path="/signup" element={<AuthPage />} />
+              <Route path="/auth/*" element={<AuthPage />} />
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
@@ -31,8 +36,8 @@ function App() {
                   <LessonView />
                 </ProtectedRoute>
               } />
-              {/* The old redirect from "/" is replaced by the LandingPage route */}
-              {/* Ensure any other existing routes are preserved if not specified in the issue's App.tsx snippet */}
+              {/* Redirect unknown routes to home */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
         </Router>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import {
   Zap,
   Brain,
@@ -15,16 +16,15 @@ import {
   Code2,
   Cpu
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import LanguageSelector from './LanguageSelector';
+import { motion } from 'framer-motion';
 
 export default function LandingPage() {
   const { t } = useTranslation();
-  const [isLoading, setIsLoading] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { isSignedIn } = useAuth();
 
   // Auto-rotate features
   useEffect(() => {
@@ -36,10 +36,10 @@ export default function LandingPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
+    if (isSignedIn) {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [isSignedIn, navigate]);
 
   const features = [
     {
@@ -70,22 +70,22 @@ export default function LandingPage() {
     {
       name: t('landing.testimonials.alex.name'),
       role: t('landing.testimonials.alex.role'),
-      avatar: "https://randomuser.me/api/portraits/men/1.jpg", // URL que funciona
-      content: t('landing.testimonials.alex.content'), // Assuming content should also be translated
+      avatar: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2",
+      content: t('landing.testimonials.alex.content'),
       rating: 5
     },
     {
       name: t('landing.testimonials.maria.name'),
       role: t('landing.testimonials.maria.role'),
-      avatar: "https://randomuser.me/api/portraits/women/2.jpg", // URL que funciona
-      content: t('landing.testimonials.maria.content'), // Assuming content should also be translated
+      avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2",
+      content: t('landing.testimonials.maria.content'),
       rating: 5
     },
     {
       name: t('landing.testimonials.david.name'),
       role: t('landing.testimonials.david.role'),
-      avatar: "https://randomuser.me/api/portraits/men/3.jpg", // URL que funciona
-      content: t('landing.testimonials.david.content'), // Assuming content should also be translated
+      avatar: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2",
+      content: t('landing.testimonials.david.content'),
       rating: 5
     }
   ];
@@ -112,13 +112,13 @@ export default function LandingPage() {
           <div className="flex items-center space-x-4">
             <LanguageSelector variant="header" />
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/auth/sign-in')}
               className="px-6 py-2 text-gray-300 hover:text-white transition-colors"
             >
               {t('auth.login')}
             </button>
             <button
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/auth/sign-up')}
               className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105"
             >
               {t('auth.signup')}
@@ -128,28 +128,48 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative z-10 px-6 py-20">
+      <section className="relative z-10 px-6 py-20 pt-32">
         <div className="max-w-7xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-lg rounded-full mb-8 border border-white/20">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-lg rounded-full mb-8 border border-white/20"
+          >
             <Sparkles className="h-4 w-4 text-yellow-400 mr-2" />
             <span className="text-sm font-medium">{t('landing.hero.aiPowered')}</span>
-          </div>
+          </motion.div>
 
           {/* Main Headline */}
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-5xl md:text-7xl font-bold mb-6 leading-tight"
+          >
             {t('landing.hero.title')}
-          </h1>
+          </motion.h1>
 
           {/* Subheadline */}
-          <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed"
+          >
             {t('landing.hero.subtitle')}
-          </p>
+          </motion.p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-12">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-12"
+          >
             <button
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/auth/sign-up')}
               className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-semibold text-lg hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 flex items-center"
             >
               {t('landing.hero.startJourney')}
@@ -160,10 +180,15 @@ export default function LandingPage() {
               <Play className="mr-2 h-5 w-5" />
               {t('landing.hero.watchDemo')}
             </button>
-          </div>
+          </motion.div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto"
+          >
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-white mb-2">
@@ -174,7 +199,7 @@ export default function LandingPage() {
                 </div>
               </div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -194,8 +219,11 @@ export default function LandingPage() {
             {/* Feature Cards */}
             <div className="space-y-6">
               {features.map((feature, index) => (
-                <div
+                <motion.div
                   key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 * index }}
                   className={`p-6 rounded-2xl border transition-all duration-500 cursor-pointer ${
                     activeFeature === index
                       ? 'bg-white/10 border-purple-500/50 shadow-2xl shadow-purple-500/20'
@@ -214,12 +242,17 @@ export default function LandingPage() {
                       <p className="text-gray-300">{feature.description}</p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
 
             {/* Interactive Demo */}
-            <div className="relative">
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="relative"
+            >
               <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-8 border border-white/10">
                 <div className="flex items-center space-x-2 mb-6">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
@@ -257,7 +290,7 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -276,7 +309,13 @@ export default function LandingPage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
+              <motion.div 
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * index }}
+                className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10"
+              >
                 <div className="flex items-center space-x-1 mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
@@ -298,7 +337,7 @@ export default function LandingPage() {
                     <div className="text-gray-400 text-sm">{testimonial.role}</div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -317,7 +356,7 @@ export default function LandingPage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
               <button
-                onClick={() => navigate('/signup')}
+                onClick={() => navigate('/auth/sign-up')}
                 className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-semibold text-lg hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 flex items-center"
               >
                 {t('landing.cta.startFree')}

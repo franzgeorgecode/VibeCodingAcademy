@@ -1,72 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Zap } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { SignIn, SignUp, useAuth } from '@clerk/clerk-react';
+import { ArrowLeft, Zap, Code2 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import LanguageSelector from './LanguageSelector';
+import { motion } from 'framer-motion';
 
 export default function AuthPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, signUp } = useAuth();
+  const { isSignedIn } = useAuth();
 
-  const [isLogin, setIsLogin] = useState(location.pathname === '/login');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: ''
-  });
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    setIsLogin(location.pathname === '/login');
-    setError(''); // Reset error on page change
-    // Clear form data when switching between login/signup
-    setFormData({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '' });
-  }, [location.pathname]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    try {
-      if (isLogin) {
-        const { error } = await signIn(formData.email, formData.password);
-        if (error) throw new Error(error.message);
-        navigate('/dashboard');
-      } else {
-        if (formData.password !== formData.confirmPassword) {
-          throw new Error(t('auth.passwordsNoMatch'));
-        }
-        if (formData.password.length < 8) {
-          throw new Error(t('auth.passwordMinLength'));
-        }
-
-        const { error } = await signUp(formData.email, formData.password, {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          full_name: `${formData.firstName} ${formData.lastName}`
-        });
-
-        if (error) throw new Error(error.message);
-
-        setError(t('auth.checkEmail'));
-      }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      // Keep loading true if success message is shown, to prevent form re-enable
-      if (!error?.includes(t('auth.checkEmail').split('!')[0])) {
-         setIsLoading(false);
-      }
+  // Redirect if already signed in
+  React.useEffect(() => {
+    if (isSignedIn) {
+      navigate('/dashboard');
     }
-  };
+  }, [isSignedIn, navigate]);
+
+  // Determine if we should show SignIn or SignUp based on the path
+  const isSignUp = location.pathname.includes('sign-up') || location.pathname.includes('signup');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center justify-center p-6">
@@ -89,140 +43,104 @@ export default function AuthPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        {/* Auth Card */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 shadow-2xl">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Zap className="h-8 w-8 text-white" />
-            </div>
-
-            <h1 className="text-3xl font-bold text-white mb-2">
-              {isLogin ? t('auth.welcomeBack') : t('auth.joinVibeCoding')}
-            </h1>
-            <p className="text-gray-300">
-              {isLogin
-                ? t('auth.continueJourney')
-                : t('auth.startAdventure')
-              }
-            </p>
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Code2 className="h-8 w-8 text-white" />
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {!isLogin && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder={t('auth.firstName')}
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                    className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
-                    required
-                  />
-                </div>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder={t('auth.lastName')}
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                    className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
-                    required
-                  />
-                </div>
-              </div>
-            )}
+          <h1 className="text-3xl font-bold text-white mb-2">
+            {isSignUp ? t('auth.joinVibeCoding') : t('auth.welcomeBack')}
+          </h1>
+          <p className="text-gray-300">
+            {isSignUp
+              ? t('auth.startAdventure')
+              : t('auth.continueJourney')
+            }
+          </p>
+        </motion.div>
 
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="email"
-                placeholder={t('auth.email')}
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
-                required
-              />
-            </div>
+        {/* Auth Component Container */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 shadow-2xl"
+        >
+          {isSignUp ? (
+            <SignUp 
+              routing="path"
+              path="/auth/sign-up"
+              signInUrl="/auth/sign-in"
+              redirectUrl="/dashboard"
+              appearance={{
+                elements: {
+                  rootBox: 'w-full',
+                  card: 'bg-transparent shadow-none',
+                  headerTitle: 'text-white text-xl font-bold',
+                  headerSubtitle: 'text-gray-300',
+                  socialButtonsBlockButton: 'border border-white/20 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all backdrop-blur-sm',
+                  socialButtonsBlockButtonText: 'text-white font-medium',
+                  dividerLine: 'bg-white/20',
+                  dividerText: 'text-gray-300',
+                  formFieldInput: 'bg-white/5 border-white/20 text-white placeholder-gray-400 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 backdrop-blur-sm',
+                  formFieldLabel: 'text-gray-300 font-medium',
+                  formButtonPrimary: 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105 w-full',
+                  footerActionLink: 'text-blue-400 hover:text-blue-300 font-medium',
+                  footerActionText: 'text-gray-300',
+                  identityPreviewText: 'text-white',
+                  identityPreviewEditButton: 'text-blue-400 hover:text-blue-300',
+                }
+              }}
+            />
+          ) : (
+            <SignIn 
+              routing="path"
+              path="/auth/sign-in"
+              signUpUrl="/auth/sign-up"
+              redirectUrl="/dashboard"
+              appearance={{
+                elements: {
+                  rootBox: 'w-full',
+                  card: 'bg-transparent shadow-none',
+                  headerTitle: 'text-white text-xl font-bold',
+                  headerSubtitle: 'text-gray-300',
+                  socialButtonsBlockButton: 'border border-white/20 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all backdrop-blur-sm',
+                  socialButtonsBlockButtonText: 'text-white font-medium',
+                  dividerLine: 'bg-white/20',
+                  dividerText: 'text-gray-300',
+                  formFieldInput: 'bg-white/5 border-white/20 text-white placeholder-gray-400 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 backdrop-blur-sm',
+                  formFieldLabel: 'text-gray-300 font-medium',
+                  formButtonPrimary: 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105 w-full',
+                  footerActionLink: 'text-blue-400 hover:text-blue-300 font-medium',
+                  footerActionText: 'text-gray-300',
+                  forgotPasswordLink: 'text-blue-400 hover:text-blue-300',
+                }
+              }}
+            />
+          )}
+        </motion.div>
 
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder={t('auth.password')}
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                className="w-full pl-10 pr-12 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-
-            {!isLogin && (
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder={t('auth.confirmPassword')}
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
-                  required
-                />
-              </div>
-            )}
-
-            {error && (
-              <div className={`p-3 rounded-lg text-sm ${
-                error.includes(t('auth.checkEmail').split('!')[0]) // More robust check for success message
-                  ? 'bg-green-500/20 text-green-300 border border-green-500/50'
-                  : 'bg-red-500/20 text-red-300 border border-red-500/50'
-              }`}>
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg font-semibold text-white hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:transform-none"
-            >
-              {isLoading
-                ? t('common.loading')
-                : isLogin
-                  ? t('auth.login')
-                  : t('auth.signup')
-              }
-            </button>
-          </form>
-
-          {/* Switch Mode */}
-          <div className="text-center mt-6">
-            <p className="text-gray-400">
-              {isLogin ? t('auth.noAccount') : t('auth.haveAccount')}
-              <button
-                onClick={() => {
-                  navigate(isLogin ? '/signup' : '/login');
-                  // Explicitly set isLogin state here because useEffect might not run fast enough
-                  setIsLogin(!isLogin);
-                }}
-                className="text-blue-400 hover:text-blue-300 font-semibold transition-colors ml-2"
-              >
-                {isLogin ? t('auth.signUpInstead') : t('auth.signInInstead')}
-              </button>
-            </p>
+        {/* Features Preview */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-8 grid grid-cols-2 gap-4 text-center"
+        >
+          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+            <Zap className="h-6 w-6 text-blue-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-300 font-medium">AI-Powered Learning</p>
           </div>
-        </div>
+          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+            <Code2 className="h-6 w-6 text-purple-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-300 font-medium">Real Projects</p>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -1,32 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Award, User } from 'lucide-react';
+import { BookOpen, Award, User, LogOut } from 'lucide-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { supabase } from '../lib/supabase';
 import { useTranslation } from '../contexts/LanguageContext';
 import { lessonsData } from '../data/lessonsData';
-import { useAuthStore } from '@/stores/authStore'; // Import useAuthStore
 import LessonsTab from './LessonsTab';
 import BadgesTab from './BadgesTab';
 import CertificateTab from './CertificateTab';
 import ProfileTab from './ProfileTab';
+import { motion } from 'framer-motion';
 
 interface UserProgress {
   lesson_id: string;
   completed: boolean;
-  score: number; // Changed from quiz_score
+  score: number;
   attempts?: number;
 }
 
-// Interface for the data structure expected by userBadges state and BadgesTab
 interface UserBadge {
   badge_name: string;
   badge_xp: number;
   earned_at: string;
-  icon?: string; // Optional: if BadgesTab might use it later
-  description?: string; // Optional
-  rarity?: string; // Optional
+  icon?: string;
+  description?: string;
+  rarity?: string;
 }
 
-// Interface for the raw data fetched from Supabase (with nested badge details)
 interface FetchedUserBadge {
   earned_at: string;
   badge_id: string;
@@ -40,20 +39,18 @@ interface FetchedUserBadge {
 }
 
 export default function Dashboard() {
-  const { t } = useTranslation(); // Added
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('lessons');
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [loading, setLoading] = useState(true);
-  const [localUser, setLocalUser] = useState<any>(null); // Renamed to avoid conflict with authStore user
-
-  // Get user from authStore for welcome message reactivity
-  const { user: authUser } = useAuthStore();
+  const { signOut } = useAuth();
+  const { user } = useUser();
 
   useEffect(() => {
     fetchUserData();
 
-    // Listener for manual updates (e.g., from LessonView)
+    // Listener for manual updates
     const handleProgressUpdate = (event?: CustomEvent) => {
       console.log('[Dashboard] Event: progressUpdated received.', event?.detail);
       fetchUserData();
@@ -63,12 +60,11 @@ export default function Dashboard() {
     // Supabase Real-time Subscriptions
     console.log('[Dashboard] Setting up Supabase real-time subscriptions.');
     const progressSubscription = supabase
-      .channel('dashboard-user-progress') // Unique channel name for dashboard
+      .channel('dashboard-user-progress')
       .on('postgres_changes', {
-        event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+        event: '*',
         schema: 'public',
         table: 'user_progress',
-        // filter: `user_id=eq.${user?.id}` // Ensure this filter is applied if user is available
       }, (payload) => {
         console.log('[Dashboard] Real-time: user_progress change detected.', payload);
         fetchUserData();
@@ -83,12 +79,11 @@ export default function Dashboard() {
       });
 
     const badgesSubscription = supabase
-      .channel('dashboard-user-badges') // Unique channel name
+      .channel('dashboard-user-badges')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'user_badges',
-        // filter: `user_id=eq.${user?.id}`
       }, (payload) => {
         console.log('[Dashboard] Real-time: user_badges change detected.', payload);
         fetchUserData();
@@ -102,47 +97,35 @@ export default function Dashboard() {
         }
       });
 
-    // Cleanup function
     return () => {
       console.log('[Dashboard] Cleaning up real-time subscriptions and event listener.');
       window.removeEventListener('progressUpdated', handleProgressUpdate);
       progressSubscription.unsubscribe();
       badgesSubscription.unsubscribe();
     };
-  }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
+  }, []);
 
   const fetchUserData = async () => {
     console.log('[Dashboard] fetchUserData: Initiating data fetch.');
-    // setLoading(true); // Consider if re-enabling this provides better UX for manual refreshes
     try {
-      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
-
-      if (userError) {
-        console.error('[Dashboard] fetchUserData: Error fetching user.', userError);
+      if (!user?.id) {
+        console.log('[Dashboard] fetchUserData: No user found.');
         setLoading(false);
-        return;
-      }
-      if (!currentUser) {
-        console.log('[Dashboard] fetchUserData: No current user found.');
-        setLoading(false);
-        // Potentially clear user-specific state if a user was previously logged in
-        setLocalUser(null); // Use setLocalUser
         setUserProgress([]);
         setUserBadges([]);
         return;
       }
 
-      console.log('[Dashboard] fetchUserData: User found:', currentUser.email);
-      setLocalUser(currentUser); // Use setLocalUser
+      console.log('[Dashboard] fetchUserData: User found:', user.emailAddresses[0]?.emailAddress);
 
       // Fetch user progress
       const { data: progress, error: progressError } = await supabase
         .from('user_progress')
-        .select('lesson_id, completed, score, attempts') // Corrected: quiz_score to score, added attempts
-        .eq('user_id', currentUser.id);
+        .select('lesson_id, completed, score, attempts')
+        .eq('user_id', user.id);
 
       if (progressError) {
-        console.error('[Dashboard] fetchUserData: Error fetching user_progress. Status:', progressError?.code, 'Message:', progressError?.message, 'Details:', progressError?.details, 'Hint:', progressError?.hint, progressError);
+        console.error('[Dashboard] fetchUserData: Error fetching user_progress.', progressError);
       } else {
         console.log('[Dashboard] fetchUserData: User progress data received:', progress);
         setUserProgress(progress || []);
@@ -162,12 +145,12 @@ export default function Dashboard() {
             rarity
           )
         `)
-        .eq('user_id', currentUser.id)
+        .eq('user_id', user.id)
         .order('earned_at', { ascending: false });
 
       if (badgesError) {
-        console.error('[Dashboard] fetchUserData: Error fetching user_badges. Status:', badgesError?.code, 'Message:', badgesError?.message, 'Details:', badgesError?.details, 'Hint:', badgesError?.hint, badgesError);
-        setUserBadges([]); // Set to empty array on error
+        console.error('[Dashboard] fetchUserData: Error fetching user_badges.', badgesError);
+        setUserBadges([]);
       } else {
         console.log('[Dashboard] fetchUserData: Raw user badges data received:', fetchedBadgesData);
         const transformedBadges = (fetchedBadgesData || [])
@@ -180,7 +163,6 @@ export default function Dashboard() {
               icon: ub.badges.icon,
               description: ub.badges.description,
               rarity: ub.badges.rarity,
-              // badge_id: ub.badge_id, // Can be added if UserBadge interface needs it
             };
           })
           .filter(b => b !== null) as UserBadge[];
@@ -188,20 +170,6 @@ export default function Dashboard() {
         console.log('[Dashboard] fetchUserData: Transformed user badges:', transformedBadges);
         setUserBadges(transformedBadges);
       }
-
-      // Log calculated values (userBadges state is now the transformed one)
-      const calculatedTotalXP = userBadges.reduce((sum, badge) => sum + (badge.badge_xp || 0), 0);
-      const calculatedCompletedLessons = (progress || []).filter(p => p.completed).length;
-      const totalLessons = Object.keys(lessonsData).length;
-      const calculatedProgressPercentage = totalLessons > 0 ? Math.round((calculatedCompletedLessons / totalLessons) * 100) : 0;
-
-      console.log('[Dashboard] fetchUserData: Calculated stats:', {
-        userEmail: currentUser.email,
-        completedLessons: calculatedCompletedLessons,
-        totalXP: calculatedTotalXP,
-        badgesEarned: (badges || []).length,
-        progressPercentage: calculatedProgressPercentage,
-      });
 
     } catch (error) {
       console.error('[Dashboard] fetchUserData: Unexpected error during data fetching.', error);
@@ -211,14 +179,13 @@ export default function Dashboard() {
     }
   };
 
-  // Función para refrescar manualmente (llamada desde tabs)
   const refreshData = () => {
     console.log('[Dashboard] refreshData: Manual refresh triggered.');
     fetchUserData();
   };
 
   const totalLessonsCount = Object.keys(lessonsData).length;
-  const totalXP = userBadges.reduce((sum, badge) => sum + (badge.badge_xp || 0), 0); // Ensure badge_xp is a number
+  const totalXP = userBadges.reduce((sum, badge) => sum + (badge.badge_xp || 0), 0);
   const completedLessons = userProgress.filter(p => p.completed).length;
   const progressPercentage = totalLessonsCount > 0 ? Math.round((completedLessons / totalLessonsCount) * 100) : 0;
 
@@ -233,19 +200,34 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      {/* Header de Bienvenida */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {t('dashboard.welcomeBack', {
-            name: authUser?.user_metadata?.first_name || authUser?.email?.split('@')[0] || localUser?.user_metadata?.first_name || localUser?.email?.split('@')[0] || 'Student'
-          })}
-        </h1>
-        <p className="text-gray-600">{t('dashboard.title')}</p>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {t('dashboard.welcomeBack', {
+              name: user?.firstName || user?.emailAddresses[0]?.emailAddress?.split('@')[0] || 'Student'
+            })}
+          </h1>
+          <p className="text-gray-600">{t('dashboard.title')}</p>
+        </div>
+        
+        <button
+          onClick={() => signOut()}
+          className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+        >
+          <LogOut className="h-5 w-5" />
+          <span>Sign Out</span>
+        </button>
       </div>
 
-      {/* Header Stats - CON DATOS REALES ACTUALIZADOS */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6 transform hover:scale-105 transition-transform">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white rounded-lg shadow p-6 transform hover:scale-105 transition-transform"
+        >
           <div className="flex items-center">
             <BookOpen className="h-8 w-8 text-blue-600" />
             <div className="ml-4">
@@ -257,9 +239,14 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white rounded-lg shadow p-6 transform hover:scale-105 transition-transform">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-lg shadow p-6 transform hover:scale-105 transition-transform"
+        >
           <div className="flex items-center">
             <Award className="h-8 w-8 text-yellow-600" />
             <div className="ml-4">
@@ -269,11 +256,16 @@ export default function Dashboard() {
               <p className="text-2xl font-bold text-gray-900">{totalXP}</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white rounded-lg shadow p-6 transform hover:scale-105 transition-transform">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white rounded-lg shadow p-6 transform hover:scale-105 transition-transform"
+        >
           <div className="flex items-center">
-            <Award className="h-8 w-8 text-purple-600" /> {/* Icon matches original prompt */}
+            <Award className="h-8 w-8 text-purple-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">
                 {t('dashboard.stats.badgesEarned')}
@@ -281,11 +273,16 @@ export default function Dashboard() {
               <p className="text-2xl font-bold text-gray-900">{userBadges.length}</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white rounded-lg shadow p-6 transform hover:scale-105 transition-transform">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white rounded-lg shadow p-6 transform hover:scale-105 transition-transform"
+        >
           <div className="flex items-center">
-            <User className="h-8 w-8 text-green-600" /> {/* Icon matches original prompt */}
+            <User className="h-8 w-8 text-green-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">
                 {t('dashboard.stats.progress')}
@@ -293,10 +290,10 @@ export default function Dashboard() {
               <p className="text-2xl font-bold text-gray-900">{progressPercentage}%</p>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      {/* Navigation Tabs - COMPLETAMENTE TRADUCIDOS */}
+      {/* Navigation Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
           <button
@@ -329,7 +326,6 @@ export default function Dashboard() {
           >
             {t('dashboard.tabs.certificate')}
           </button>
-          {/* New Profile Tab Button */}
           <button
             onClick={() => setActiveTab('profile')}
             className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
@@ -343,30 +339,37 @@ export default function Dashboard() {
         </nav>
       </div>
 
-      {/* Tab Content - PASANDO FUNCIÓN DE REFRESH */}
-      {activeTab === 'lessons' && (
-        <LessonsTab
-          userProgress={userProgress}
-          onProgressUpdate={refreshData} // Changed from original, now passing refreshData
-        />
-      )}
+      {/* Tab Content */}
+      <motion.div
+        key={activeTab}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {activeTab === 'lessons' && (
+          <LessonsTab
+            userProgress={userProgress}
+            onProgressUpdate={refreshData}
+          />
+        )}
 
-      {activeTab === 'badges' && (
-        <BadgesTab
-          userBadges={userBadges}
-          onBadgeUpdate={refreshData} // Changed from original, now passing refreshData
-        />
-      )}
+        {activeTab === 'badges' && (
+          <BadgesTab
+            userBadges={userBadges}
+            onBadgeUpdate={refreshData}
+          />
+        )}
 
-      {activeTab === 'certificate' && (
-        <CertificateTab
-          completedLessons={completedLessons}
-          totalXP={totalXP}
-          onCertificateGenerate={refreshData} // Changed from original, now passing refreshData
-        />
-      )}
-      {/* New Profile Tab Content */}
-      {activeTab === 'profile' && <ProfileTab />}
+        {activeTab === 'certificate' && (
+          <CertificateTab
+            completedLessons={completedLessons}
+            totalXP={totalXP}
+            onCertificateGenerate={refreshData}
+          />
+        )}
+
+        {activeTab === 'profile' && <ProfileTab />}
+      </motion.div>
     </div>
   );
 }

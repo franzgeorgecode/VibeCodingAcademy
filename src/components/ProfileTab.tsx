@@ -1,53 +1,43 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useUser } from '@clerk/clerk-react';
 import { supabase } from '../lib/supabase';
-import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../contexts/LanguageContext';
+import { useAuth } from '@clerk/clerk-react';
 
 export default function ProfileTab() {
   const { t } = useTranslation();
-  const { user, logout: authStoreLogout } = useAuthStore();
+  const { user } = useUser();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [loading, setLoading] = useState(false); // Initially false, true during operations
-  const [initialLoading, setInitialLoading] = useState(true); // For initial data fetch
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
     if (!user?.id) {
       setInitialLoading(false);
-      // Ensure t is available or provide a safe default if t itself is loading/unavailable initially
       setError(t ? t('profile.errorNoUser', { defaultValue: 'User not found. Profile cannot be loaded.' }) : 'User not found.');
       return;
     }
     try {
       setInitialLoading(true);
       setError(null);
-      const { data, error: fetchError } = await supabase
-        .from('users')
-        .select('first_name, last_name')
-        .eq('id', user.id)
-        .single();
-
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116: 0 rows found
-        throw fetchError;
-      }
-      if (data) {
-        setFirstName(data.first_name || '');
-        setLastName(data.last_name || '');
-      } else {
-        setFirstName('');
-        setLastName('');
-      }
+      
+      // Get data from Clerk user object
+      setFirstName(user.firstName || '');
+      setLastName(user.lastName || '');
+      
     } catch (e: any) {
       setError(t ? t('profile.errorFetching', { defaultValue: 'Error fetching profile: ' }) + e.message : 'Error fetching profile: ' + e.message);
     } finally {
       setInitialLoading(false);
     }
-  }, [user, t]); // t is included as a dependency for safety, though it's usually stable
+  }, [user, t]);
 
   useEffect(() => {
     fetchProfile();
@@ -63,11 +53,26 @@ export default function ProfileTab() {
       setLoading(true);
       setError(null);
       setSuccessMessage(null);
+      
+      // Update user profile in Clerk
+      await user.update({
+        firstName: firstName,
+        lastName: lastName,
+      });
+
+      // Also update in Supabase
       const { error: saveError } = await supabase
         .from('users')
-        .upsert({ id: user.id, first_name: firstName, last_name: lastName }, { onConflict: 'id' });
+        .upsert({ 
+          id: user.id, 
+          username: user.username || `${firstName}_${lastName}`.toLowerCase().replace(/\s+/g, '_')
+        }, { onConflict: 'id' });
 
-      if (saveError) throw saveError;
+      if (saveError) {
+        console.warn('Error updating Supabase profile:', saveError);
+        // Don't throw error since Clerk update succeeded
+      }
+
       setSuccessMessage(t('profile.saveSuccess', { defaultValue: 'Profile saved successfully!' }));
     } catch (e: any) {
       setError(t('profile.errorSaving', { defaultValue: 'Error saving profile: ' }) + e.message);
@@ -80,8 +85,8 @@ export default function ProfileTab() {
     try {
       setLoading(true);
       setError(null);
-      await authStoreLogout(); // Assumes authStoreLogout handles Supabase signOut
-      navigate('/login');
+      await signOut();
+      navigate('/');
     } catch (e: any) {
       setError(t('profile.errorLogout', { defaultValue: 'Logout failed: ' }) + e.message);
       setLoading(false);
@@ -95,8 +100,25 @@ export default function ProfileTab() {
   return (
     <div className="bg-white shadow-md rounded-lg p-6 max-w-md mx-auto">
       <h2 className="text-2xl font-semibold mb-6 text-gray-800">{t('profile.title', { defaultValue: 'User Profile' })}</h2>
+      
+      {/* User Avatar and Basic Info */}
+      <div className="flex items-center mb-6">
+        <img
+          src={user?.imageUrl || `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=7C3AED&color=fff`}
+          alt="Profile"
+          className="w-16 h-16 rounded-full mr-4"
+        />
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800">
+            {firstName || lastName ? `${firstName} ${lastName}`.trim() : user?.emailAddresses[0]?.emailAddress}
+          </h3>
+          <p className="text-gray-600 text-sm">{user?.emailAddresses[0]?.emailAddress}</p>
+        </div>
+      </div>
+
       {error && <p className="text-red-600 bg-red-100 p-3 rounded-md mb-4 text-sm">{error}</p>}
       {successMessage && <p className="text-green-600 bg-green-100 p-3 rounded-md mb-4 text-sm">{successMessage}</p>}
+      
       <form onSubmit={handleSave} className="space-y-6">
         <div>
           <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
