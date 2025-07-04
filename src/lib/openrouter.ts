@@ -20,7 +20,11 @@ interface OpenRouterModel {
 class OpenRouterService {
   private apiKey: string;
   private baseUrl = 'https://openrouter.ai/api/v1';
-  private freeModels: string[] = [];
+  private freeModels: string[] = [
+    'microsoft/phi-3-mini-128k-instruct:free',
+    'huggingface/zephyr-7b-beta:free',
+    'google/gemma-2-9b-it:free'
+  ];
   private lastUpdate: Date | null = null;
 
   constructor() {
@@ -42,6 +46,11 @@ class OpenRouterService {
         }
       });
 
+      if (!response.ok) {
+        console.warn('Could not fetch latest models, using defaults');
+        return;
+      }
+
       const data = await response.json();
 
       // Filter free models and get the 3 best ones
@@ -52,7 +61,6 @@ class OpenRouterService {
       // Sort by context length and capabilities, select top 3
       const topFreeModels = freeModels
         .sort((a: OpenRouterModel, b: OpenRouterModel) => {
-          // Prioritize models with higher context length and better capabilities
           const scoreA = a.context_length + (a.top_provider.max_completion_tokens || 0);
           const scoreB = b.context_length + (b.top_provider.max_completion_tokens || 0);
           return scoreB - scoreA;
@@ -60,21 +68,17 @@ class OpenRouterService {
         .slice(0, 3)
         .map((model: OpenRouterModel) => model.id);
 
-      this.freeModels = topFreeModels;
-      this.lastUpdate = new Date();
+      if (topFreeModels.length > 0) {
+        this.freeModels = topFreeModels;
+        this.lastUpdate = new Date();
 
-      // Store in localStorage for persistence
-      localStorage.setItem('openrouter_free_models', JSON.stringify(this.freeModels));
-      localStorage.setItem('openrouter_last_update', this.lastUpdate.toISOString());
+        // Store in localStorage for persistence
+        localStorage.setItem('openrouter_free_models', JSON.stringify(this.freeModels));
+        localStorage.setItem('openrouter_last_update', this.lastUpdate.toISOString());
+      }
 
     } catch (error) {
-      console.error('Error loading free models:', error);
-      // Fallback to known free models
-      this.freeModels = [
-        'microsoft/phi-3-mini-128k-instruct:free',
-        'huggingface/zephyr-7b-beta:free',
-        'openai/gpt-3.5-turbo-instruct:free'
-      ];
+      console.warn('Error loading free models, using defaults:', error);
     }
   }
 
@@ -84,6 +88,10 @@ class OpenRouterService {
 
   async chatWithSrCode(message: string, lessonContext: any, language: string = 'en', model?: string): Promise<string> {
     const selectedModel = model || this.freeModels[0];
+
+    if (!this.apiKey) {
+      return "Lo siento, no puedo conectarme en este momento. Mi API key no está configurada. 🔑😅";
+    }
 
     const languageNames: { [key: string]: string } = {
       en: 'English',
@@ -99,7 +107,7 @@ class OpenRouterService {
     };
 
     const systemPrompt = `You are SrCode, a charismatic and witty AI mentor teaching bolt.new development at Vibe Coding Academy.
-    Your primary goal is to help the student understand the current lesson: "${lessonContext.title}".
+    Your primary goal is to help the student understand the current lesson: "${lessonContext?.title || 'general programming concepts'}".
     Keep your explanations focused on the lesson's objectives and concepts.
     If the question is unrelated to the current lesson or bolt.new, politely steer the conversation back.
 
@@ -114,9 +122,9 @@ PERSONALITY:
 - Never boring - always aims to be engaging and memorable.
 
 CURRENT LESSON CONTEXT:
-- Lesson: ${lessonContext.title}
-- Objective: ${lessonContext.objective}
-- Level: ${lessonContext.level}
+- Lesson: ${lessonContext?.title || 'General Programming'}
+- Objective: ${lessonContext?.objective || 'Learn programming fundamentals'}
+- Level: ${lessonContext?.level || 1}
 
 TEACHING STYLE & GUARDRAILS:
 - Give practical, actionable advice.
@@ -171,7 +179,7 @@ Remember: You're not just answering questions - you're mentoring the next genera
     // Fallback responses when API fails
     const fallbackResponses = {
       greeting: "Hey there, future bolt.new wizard! 👋 I'm SrCode, your AI mentor. What would you like to learn about today?",
-      help: `Great question about ${lessonContext.title}! While I'm having some connection issues, here's what I can tell you: ${lessonContext.objective}. Try reviewing the lesson content and come back with specific questions!`,
+      help: `Great question about ${lessonContext?.title || 'programming'}! While I'm having some connection issues, here's what I can tell you: ${lessonContext?.objective || 'Keep practicing and reviewing the lesson content'}. Try reviewing the lesson content and come back with specific questions!`,
       encouragement: "You're doing great! Keep practicing and don't be afraid to experiment. That's how we learn! 🚀",
       default: "Hmm, I'm having some technical difficulties right now. But hey, that's part of development too! Try reviewing the lesson materials and I'll be back online soon. 💻"
     };
