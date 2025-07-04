@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth, useUser } from '@clerk/clerk-react';
+import { useAuth as useClerkAuth, useUser } from '@clerk/clerk-react';
 import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
@@ -23,7 +23,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { isSignedIn, isLoaded, signOut: clerkSignOut } = useAuth();
+  const { isSignedIn, isLoaded, signOut: clerkSignOut } = useClerkAuth();
   const { user: clerkUser } = useUser();
   const [loading, setLoading] = useState(true);
 
