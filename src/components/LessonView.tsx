@@ -118,6 +118,8 @@ export default function LessonView() {
         completed_at: isCompleted ? new Date().toISOString() : userProgress?.completed_at || null
       };
 
+      console.log('Upserting progress data:', upsertData);
+
       const { data: progressDataArray, error: progressError } = await supabase
         .from('user_progress')
         .upsert(upsertData, {
@@ -140,19 +142,47 @@ export default function LessonView() {
       }
 
       if (isCompleted) {
-        // Award badge
-        const { error: badgeError } = await supabase
-          .from('user_badges')
-          .upsert({
-            user_id: user.id,
-            badge_id: currentLesson.id, // Using lesson ID as badge ID for simplicity
-            earned_at: new Date().toISOString()
-          }, {
-            onConflict: 'user_id,badge_id'
-          });
+        // Try to award badge - use lesson ID as badge ID for simplicity
+        try {
+          // First check if badge exists in badges table
+          const { data: badgeExists } = await supabase
+            .from('badges')
+            .select('id')
+            .eq('id', currentLesson.id)
+            .single();
 
-        if (badgeError) {
-          console.error('Badge award failed:', badgeError);
+          if (!badgeExists) {
+            // Create badge if it doesn't exist
+            await supabase
+              .from('badges')
+              .insert({
+                id: currentLesson.id,
+                name: translatedLesson.badgeName || `Lesson ${currentLesson.level}-${currentLesson.orderInLevel}`,
+                description: translatedLesson.objective || 'Lesson completed',
+                icon: '🏆',
+                xp_reward: currentLesson.badgeXp || 10,
+                rarity: 'common'
+              });
+          }
+
+          // Award badge to user
+          const { error: badgeError } = await supabase
+            .from('user_badges')
+            .upsert({
+              user_id: user.id,
+              badge_id: currentLesson.id,
+              earned_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id,badge_id'
+            });
+
+          if (badgeError) {
+            console.error('Badge award failed:', badgeError);
+          } else {
+            console.log('Badge awarded successfully');
+          }
+        } catch (badgeError) {
+          console.error('Error in badge awarding process:', badgeError);
         }
 
         const nextLessonId = getNextLessonId(currentLesson);
