@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (isLoaded) {
         if (isSignedIn && clerkUser) {
           try {
-            // Sync user data with Supabase
+            // Sync user data with Supabase - use upsert with proper conflict resolution
             const { data, error } = await supabase
               .from('users')
               .upsert({
@@ -53,6 +53,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             if (error && error.code !== '23505') { // Ignore duplicate key errors
               console.error('Error syncing user with Supabase:', error);
+            } else {
+              console.log('User synced successfully with Supabase');
             }
           } catch (error) {
             console.error('Error in user sync:', error);

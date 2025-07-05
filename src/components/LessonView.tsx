@@ -123,8 +123,7 @@ export default function LessonView() {
       const { data: progressDataArray, error: progressError } = await supabase
         .from('user_progress')
         .upsert(upsertData, {
-          onConflict: 'user_id,lesson_id',
-          returning: 'representation'
+          onConflict: 'user_id,lesson_id'
         })
         .select();
 

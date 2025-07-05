@@ -126,6 +126,7 @@ export default function Dashboard() {
 
       if (progressError) {
         console.error('[Dashboard] fetchUserData: Error fetching user_progress.', progressError);
+        setUserProgress([]);
       } else {
         console.log('[Dashboard] fetchUserData: User progress data received:', progress);
         setUserProgress(progress || []);
@@ -216,7 +217,7 @@ export default function Dashboard() {
           className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
         >
           <LogOut className="h-5 w-5" />
-          <span>Sign Out</span>
+          <span>{t('navigation.logout')}</span>
         </button>
       </div>
 
